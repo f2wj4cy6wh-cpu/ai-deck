@@ -27,6 +27,7 @@ export function buildCatalog(raw, sourceName) {
     byId: new Map(items.map((item) => [item.id, item])),
     source: sourceName,
     generatedAt: raw.generatedAt ?? null,
+    trendingAt: raw.trendingAt ?? null,
     sources: raw.sources ?? null,
   };
 }
@@ -43,6 +44,43 @@ export function mergeSeed(raw, seed) {
   const mcpRepos = new Set(seedItems.filter((i) => i.type === "mcp" && i.repo).map((i) => i.repo.toLowerCase()));
   const rest = (raw.items ?? []).filter((i) => !ids.has(i.id) && !(i.type === "mcp" && i.source !== "seed" && i.repo && mcpRepos.has(i.repo.toLowerCase())));
   return { ...raw, items: [...seedItems, ...rest] };
+}
+
+/**
+ * Marks items whose repo is trending on GitHub (data/trending.json from scripts/trending.js), and adds
+ * trending AI repos the catalog doesn't have yet. `trending.weekly` is stars gained in a week; `estimated`
+ * means a new repo's figure was scaled from its age rather than read from GitHub's trending page.
+ */
+export function mergeTrending(raw, trending) {
+  if (!trending?.repos?.length) return raw;
+  const byRepo = new Map(trending.repos.map((t) => [t.repo.toLowerCase(), t]));
+  const covered = new Set();
+  const items = (raw.items ?? []).map((item) => {
+    const t = item.repo && byRepo.get(item.repo.toLowerCase());
+    if (!t) return item;
+    covered.add(t.repo.toLowerCase());
+    return { ...item, trending: { weekly: t.weekly, estimated: Boolean(t.estimated), createdAt: t.createdAt ?? null }, stars: Math.max(item.stars ?? 0, t.stars) || item.stars };
+  });
+  for (const t of trending.repos) {
+    if (covered.has(t.repo.toLowerCase())) continue;
+    const name = t.repo.split("/")[1];
+    items.push({
+      id: `repo:${t.repo}`,
+      type: "repo",
+      name,
+      summary: t.description.length > 220 ? `${t.description.slice(0, 217).replace(/\s+\S*$/, "")}…` : t.description,
+      description: t.description.slice(0, 400),
+      tags: ["trending"],
+      repo: t.repo,
+      author: t.repo.split("/")[0],
+      stars: t.stars,
+      language: t.language,
+      createdAt: t.createdAt ?? undefined,
+      trending: { weekly: t.weekly, estimated: Boolean(t.estimated), createdAt: t.createdAt ?? null },
+      source: "github-trending",
+    });
+  }
+  return { ...raw, items, trendingAt: trending.generatedAt };
 }
 
 const rank = (item) => [item.curated ? 1 : 0, item.official ? 1 : 0, item.stars ?? -1, item.trust.score];
@@ -155,5 +193,5 @@ export function formatCount(n) {
 export function catalogStats(catalog) {
   const counts = Object.fromEntries(TYPES.map((t) => [t, 0]));
   for (const item of catalog.items) counts[item.type] += 1;
-  return { counts, total: catalog.items.length, source: catalog.source, generatedAt: catalog.generatedAt };
+  return { counts, total: catalog.items.length, source: catalog.source, generatedAt: catalog.generatedAt, trendingAt: catalog.trendingAt };
 }

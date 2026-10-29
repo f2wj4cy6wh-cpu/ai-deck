@@ -241,6 +241,17 @@ function sectionHeader(title, right = "") {
   </div>`;
 }
 
+/** "+16k this week" from GitHub trending, or "NEW" for a young repo whose weekly figure is only an estimate. */
+function trendBadge(item) {
+  const t = item.trending;
+  if (!t) return "";
+  if (t.estimated) {
+    const since = t.createdAt ? ` · created ${ago(t.createdAt)}` : "";
+    return `<span class="flex items-center gap-1 text-secondary font-bold" title="A new repo gaining stars fast"><span class="material-symbols-outlined text-[14px]" aria-hidden="true">bolt</span>NEW${since}</span>`;
+  }
+  return `<span class="flex items-center gap-1 text-secondary font-bold" title="Stars gained this week, from GitHub trending"><span class="material-symbols-outlined text-[14px]" aria-hidden="true">trending_up</span>+${fmt(t.weekly)} this week</span>`;
+}
+
 function trustBadge(item) {
   if (item.official) return `<span class="text-primary font-bold">● OFFICIAL</span>`;
   const s = item.trust?.score ?? 0;
@@ -345,6 +356,7 @@ function toolCard(item, { why, ai } = {}) {
     item.version ? `<span class="text-on-surface">v${esc(item.version)}</span>` : "",
     item.license ? `<span class="text-primary font-bold">${esc(item.license)}</span>` : "",
     `<span class="text-on-surface-variant">${LEVEL_LABEL[item.level]}</span>`,
+    trendBadge(item),
   ].filter(Boolean);
   const subtitle = [item.marketplace && `@${item.marketplace}`, item.plugin && `in ${item.plugin}`, item.author].filter(Boolean)[0] ?? "";
   return `<article class="flex flex-col relative">
@@ -393,6 +405,7 @@ function repoCard(item, { why, ai } = {}) {
     item.license && `<span class="px-1.5 py-0.5 bg-surface-container-high text-primary font-label-code text-label-code rounded shadow-[1px_1px_0px_#000000]">● ${esc(item.license)}</span>`,
     item.language && `<span class="px-1.5 py-0.5 bg-surface-container-highest text-on-surface font-label-code text-label-code rounded">${esc(item.language)}</span>`,
     item.pushedAt && `<span class="px-1.5 py-0.5 text-on-surface-variant font-label-code text-label-code">pushed ${ago(item.pushedAt)}</span>`,
+    item.trending && `<span class="px-1.5 py-0.5 font-label-code text-label-code">${trendBadge(item)}</span>`,
   ].filter(Boolean);
   return `<article class="relative pt-3">
     <div class="absolute top-0 left-3 px-space-sm py-0.5 bg-repo text-on-repo font-label-code text-label-code uppercase tracking-wider rounded-t shadow-[2px_0px_0px_#000000]">DIR://${esc((item.tags[0] ?? "repo").toUpperCase().replace(/[^A-Z0-9]+/g, "_"))}</div>
@@ -579,7 +592,16 @@ async function viewExplore() {
         </div>`
       : `<h1 class="sr-only">Search the AI Deck index</h1>`;
 
-  const spotlightRes = await api(hrefApi("/api/items", { types: ["mcp", "plugin", "skill"], sort: "trust", limit: 1 }));
+  const [spotlightRes, trendingRes] = await Promise.all([
+    api(hrefApi("/api/items", { types: ["mcp", "plugin", "skill"], sort: "trust", limit: 1 })),
+    api(hrefApi("/api/items", { sort: "trending", limit: 4 })),
+  ]);
+  const trendingHtml = trendingRes.items.length
+    ? `<div class="flex flex-col space-y-space-xs">
+        ${sectionHeader("Trending This Week", `<a href="#/trending" class="font-label-code text-label-code text-primary hover:underline">[ SEE ALL ${trendingRes.total} ]</a>`)}
+        ${cardGrid(remember(trendingRes.items).map((item) => card(item)).join(""))}
+      </div>`
+    : "";
   const spotlight = remember(spotlightRes.items)[0];
 
   return page(`
@@ -598,6 +620,7 @@ async function viewExplore() {
     </div>
     ${sectionHeader("Deck Collections", `<span class="font-label-code text-label-code text-on-surface-variant">DIR://ROOT</span>`)}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-gutter">${folderHtml}</div>
+    ${trendingHtml}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-space-lg items-start">
     ${spotlight ? `<div class="flex flex-col space-y-space-xs">${sectionHeader("Spotlight Deck", `<span class="font-label-code text-label-code text-secondary">[TOP_TRUST]</span>`)}${card(spotlight)}</div>` : ""}
     ${
@@ -767,12 +790,25 @@ async function viewSkills(params) {
   </div>`;
 }
 
+async function viewTrending(params) {
+  const limit = Number(params.get("limit")) || PAGE_SIZE;
+  const data = await api(hrefApi("/api/items", { sort: "trending", limit }));
+  remember(data.items);
+  const updated = state.stats?.trendingAt ? `UPDATED ${ago(state.stats.trendingAt).toUpperCase()}` : "";
+  return page(`
+    ${sectionHeader(`Trending // ${data.total}`, `<span class="font-label-code text-label-code text-on-surface-variant">${esc(updated)}</span>`)}
+    <p class="font-body-sm text-body-sm text-outline -mt-space-sm">AI repos gaining the most GitHub stars this week, read from GitHub's trending pages. "New" marks young repos rising fast, where the weekly number is an estimate. Stars show attention, not quality: check the trust score and the code before you install.</p>
+    ${data.items.length ? cardGrid(data.items.map((item) => card(item)).join("")) : noItemsBlock()}
+    ${showMoreLink("trending", params, data.items.length, data.total)}
+  `);
+}
+
 async function viewRepos(params) {
-  const sort = ["stars", "updated", "name"].includes(params.get("sort")) ? params.get("sort") : "stars";
+  const sort = ["stars", "trending", "updated", "name"].includes(params.get("sort")) ? params.get("sort") : "stars";
   const language = params.get("language") ?? "";
   const data = await api(hrefApi("/api/items", { type: "repo", sort, language, limit: 60 }));
   remember(data.items);
-  const sorts = [["stars", "Most stars"], ["updated", "Recently pushed"], ["name", "A–Z"]];
+  const sorts = [["stars", "Most stars"], ["trending", "Trending"], ["updated", "Recently pushed"], ["name", "A–Z"]];
   return page(`
     <div class="flex items-center justify-between bg-surface-container-high px-space-sm py-space-xs rounded shadow-[2px_2px_0px_#000000]">
       <span class="flex items-center gap-space-xs"><span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" aria-hidden="true"></span><span class="font-label-code text-label-code text-primary uppercase">RADAR_STREAM</span></span>
@@ -781,7 +817,7 @@ async function viewRepos(params) {
     ${searchConsole({ placeholder: "find repos: what should it help you build?", type: "repo" })}
     <div class="flex flex-col gap-space-xs">
       <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">[ SORT ]</span>
-      <div class="grid grid-cols-3 gap-gutter-sm">${sorts
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-gutter-sm">${sorts
         .map(([s, label]) => {
           const active = s === sort;
           return `<a href="${esc(hrefWith("repos", { sort: s, language }))}" class="press py-1 px-space-xs text-center ${active ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"} font-label-code text-label-code uppercase rounded shadow-[2px_2px_0px_#000000]"${active ? ' aria-current="true"' : ""}>[ ${label} ]</a>`;
@@ -851,6 +887,7 @@ const VIEWS = {
   repos: { label: "Repos", nav: "repos", render: viewRepos },
   saved: { label: "Saved", nav: "saved", render: viewSaved },
   starter: { label: "Starter Kit", nav: "explore", render: viewStarter },
+  trending: { label: "Trending", nav: "explore", render: viewTrending },
 };
 
 async function render() {

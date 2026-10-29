@@ -100,7 +100,19 @@ export function createApi({ state, rerank, aiStatus, saveSubmission }) {
         stars: (a, b) => (b.stars ?? -1) - (a.stars ?? -1),
         updated: (a, b) => Date.parse(b.pushedAt ?? 0) - Date.parse(a.pushedAt ?? 0),
         name: (a, b) => a.name.localeCompare(b.name),
+        // Exact weekly gains from GitHub's page first; estimates for brand-new repos after.
+        trending: (a, b) => Number(a.trending.estimated) - Number(b.trending.estimated) || b.trending.weekly - a.trending.weekly,
       };
+      if (sort === "trending") {
+        // One entry per repo: a trending repo's plugin and its skills would otherwise fill the list.
+        // Keep the card that stands for the whole repo: the repo itself, else its plugin or server.
+        const typeRank = { repo: 0, plugin: 1, mcp: 2, skill: 3, prompt: 4 };
+        const seen = new Set();
+        items = items
+          .filter((i) => i.trending)
+          .sort((a, b) => typeRank[a.type] - typeRank[b.type])
+          .filter((i) => !seen.has(i.repo.toLowerCase()) && seen.add(i.repo.toLowerCase()));
+      }
       if (!ids) items = [...items].sort(sorters[sort] ?? sorters.trust);
 
       const pool = type || types.length ? items : catalog.items;

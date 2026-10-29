@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildCatalog, mergeSeed } from "./catalog.js";
+import { buildCatalog, mergeSeed, mergeTrending } from "./catalog.js";
 import { cleanAutoTags } from "./search.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -14,7 +14,9 @@ export function loadCatalog(dataDir = DATA_DIR, { seedOnly = false } = {}) {
   const seedFile = path.join(dataDir, "seed.json");
   const seed = JSON.parse(fs.readFileSync(seedFile, "utf8"));
   if (seedOnly || !fs.existsSync(catalogFile)) return buildCatalog(seed, "seed.json");
-  const raw = mergeSeed(JSON.parse(fs.readFileSync(catalogFile, "utf8")), seed);
+  const trendingFile = path.join(dataDir, "trending.json");
+  const trending = fs.existsSync(trendingFile) ? JSON.parse(fs.readFileSync(trendingFile, "utf8")) : null;
+  const raw = mergeTrending(mergeSeed(JSON.parse(fs.readFileSync(catalogFile, "utf8")), seed), trending);
   cleanAutoTags(raw.items);
   return buildCatalog(raw, "catalog.json");
 }

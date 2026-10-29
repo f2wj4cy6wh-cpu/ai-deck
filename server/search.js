@@ -363,8 +363,10 @@ export function search(index, { q = "", type = null, agent = null, level = "begi
     const curated = item.curated ? 1.25 : 1;
     // With a specific agent picked, things that install into it beat generic "works anywhere" repos.
     const genericRepo = wantedAgent && item.type === "repo" && item.genericAgents ? 0.7 : 1;
+    // Gaining hundreds of stars a week is a real signal that people find it useful right now.
+    const hot = item.trending?.weekly >= 500 ? 1.1 : 1;
     const score = hasQuery
-      ? relevance * (0.4 + 0.9 * trust) * (1 + levelFit) * curated * genericRepo
+      ? relevance * (0.4 + 0.9 * trust) * (1 + levelFit) * curated * genericRepo * hot
       : (trust * 10 + levelFit) * genericRepo;
 
     results.push({ item, score, matchedTerms, matchedTags });

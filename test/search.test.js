@@ -272,3 +272,44 @@ test("a query that says one of a prompt's use cases finds that prompt", () => {
   assert.equal(top("make it shorter", { agent: "chatgpt" }, 1)[0], "prompt:rewrite-tone");
   assert.equal(top("write sql for me", { agent: "gemini-app" }, 1)[0], "prompt:sql-writer");
 });
+
+// GitHub trending (scripts/trending.js).
+
+test("parseTrending reads a github.com/trending row", async () => {
+  const { parseTrending } = await import("../scripts/trending.js");
+  const html = `<article class="Box-row"><h2 class="h3 lh-condensed"><a href="/cloudflare/security-audit-skill" class="Link"><svg></svg>
+    <span class="text-normal">cloudflare /</span> security-audit-skill</a></h2>
+    <p class="col-9 color-fg-muted my-1 tmp-pr-4">A coding-agent skill for security audits &amp; more</p>
+    <span itemprop="programmingLanguage">JavaScript</span>
+    <a href="/cloudflare/security-audit-skill/stargazers" class="Link"><svg aria-label="star"><path d="M8"></path></svg>
+    52,022</a> <span class="d-inline-block float-sm-right"><svg></svg> 16,002 stars this week </span></article>`;
+  assert.deepEqual(parseTrending(html), [
+    { repo: "cloudflare/security-audit-skill", description: "A coding-agent skill for security audits & more", language: "JavaScript", stars: 52022, starsGained: 16002 },
+  ]);
+});
+
+test("trending keeps AI repos with a description and drops jailbreak tools", async () => {
+  const { isAiRepo } = await import("../scripts/trending.js");
+  assert.equal(isAiRepo({ name: "orca", description: "A place for working with a fleet of agents" }), true);
+  assert.equal(isAiRepo({ name: "dotfiles", description: "My zsh config" }), false);
+  assert.equal(isAiRepo({ name: "ai-design-skills", description: "" }), false);
+  assert.equal(isAiRepo({ name: "x", description: "Jailbreak for every LLM" }), false);
+});
+
+test("mergeTrending tags known repos and adds new ones; the trending sort keeps one card per repo", async () => {
+  const { mergeTrending, buildCatalog } = await import("../server/catalog.js");
+  const { createApi } = await import("../server/api.js");
+  const raw = {
+    items: [
+      { id: "plugin:p@m", type: "plugin", name: "p", repo: "o/p", install: { command: "/plugin install p@m" } },
+      { id: "skill:o/p:a", type: "skill", name: "a", repo: "o/p" },
+    ],
+  };
+  const trending = { generatedAt: "2026-10-29T00:00:00Z", repos: [{ repo: "o/p", description: "agents", stars: 10, weekly: 900 }, { repo: "n/new", description: "An LLM tool", stars: 50, weekly: 40, estimated: true }] };
+  const catalog = buildCatalog(mergeTrending(raw, trending), "test");
+  assert.equal(catalog.byId.get("plugin:p@m").trending.weekly, 900);
+  assert.equal(catalog.byId.get("repo:n/new").type, "repo");
+  const api = createApi({ state: () => ({ catalog }), rerank: async () => null, aiStatus: () => ({ enabled: false }), saveSubmission: async () => ({}) });
+  const [, body] = await api("GET", new URL("http://x/api/items?sort=trending"), async () => "");
+  assert.deepEqual(body.items.map((i) => i.id), ["plugin:p@m", "repo:n/new"]);
+});

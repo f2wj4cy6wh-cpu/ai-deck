@@ -8,3 +8,4 @@ public/catalog.json
 data/ingest.log
 .wrangler/
 .dev.vars*
+data/trending.json

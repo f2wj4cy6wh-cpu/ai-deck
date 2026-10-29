@@ -39,6 +39,8 @@ npm run deploy      # build + wrangler deploy
 | GitHub topics | Top repos for MCP, Claude Code, Agent Skills, Codex, Gemini CLI (+ extensions), Cursor rules, Copilot, ChatGPT/GPTs, agents, prompts |
 | GitHub API | Stars, forks, last push, license, language, archived (cached 24h) |
 
+**Trending** (`npm run trending`, separate from ingest so it can run daily): `scripts/trending.js` reads `github.com/trending` (daily, weekly, monthly, and the main AI languages; GitHub has no API for it and `robots.txt` allows it), keeps AI repos, drops jailbreak tools, and adds new AI repos rising fast from GitHub search. It writes `data/trending.json`, which the build merges in like the seed: the Explore section, the `#/trending` page and a small ranking boost. Then `npm run deploy`.
+
 GitHub limits are low when anonymous. Ingest uses `GITHUB_TOKEN`, or a signed-in `gh` CLI's token automatically, to pull far more (more topic pages, more skill repos, full stats). Options: `--offline`, `--max-mcp=N`, `--max-github=N`, `--topic-pages=N`, `--skill-repos=N`.
 
 ## Tests
