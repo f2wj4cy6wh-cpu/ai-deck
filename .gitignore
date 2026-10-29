@@ -1,0 +1,5 @@
+node_modules/
+public/styles.css
+data/catalog.json
+data/github-cache.json
+data/submissions.json

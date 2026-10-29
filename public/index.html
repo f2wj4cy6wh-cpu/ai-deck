@@ -1,0 +1,57 @@
+<!doctype html>
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>AI Deck</title>
+    <meta name="description" content="Find Claude skills, plugins, MCP servers, prompts and repos by describing what you need in plain English." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..900&family=JetBrains+Mono:wght@400..800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet" />
+    <link href="/styles.css" rel="stylesheet" />
+  </head>
+  <body class="bg-surface text-on-surface flex flex-col min-h-screen">
+    <a href="#view" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] bg-primary text-on-primary px-3 py-2 font-label-code text-label-code">Skip to content</a>
+
+    <header class="fixed top-0 w-full z-50 pt-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.5)]">
+      <div class="h-16 px-space-md max-w-2xl mx-auto flex items-center justify-between gap-space-sm">
+        <a href="#/explore" class="flex items-center gap-space-sm min-w-0" aria-label="AI Deck home">
+          <span class="w-8 h-8 shrink-0 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center shadow-[2px_2px_0px_#000000] font-label-code text-label-code" aria-hidden="true">&gt;_</span>
+          <span class="flex flex-col min-w-0">
+            <span class="font-label-code text-label-code text-primary tracking-wider uppercase">AI_DECK</span>
+            <span id="section-label" class="font-label-sm text-label-sm text-on-surface-variant truncate max-w-[140px]">Explore</span>
+          </span>
+        </a>
+        <div class="flex items-center gap-space-xs">
+          <div role="group" aria-label="Experience level" class="flex items-center bg-surface-container-lowest rounded-lg p-0.5 shadow-[2px_2px_0px_#000000]">
+            <button type="button" data-level="beginner" class="level-btn px-2 py-1.5 rounded font-label-code text-label-sm uppercase">New</button>
+            <button type="button" data-level="expert" class="level-btn px-2 py-1.5 rounded font-label-code text-label-sm uppercase">Expert</button>
+          </div>
+          <a href="#/search" aria-label="Search" class="w-11 h-11 flex items-center justify-center rounded bg-surface-container-high/60 text-on-surface hover:text-primary transition-colors">
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="view" tabindex="-1" class="flex flex-col relative w-full max-w-2xl mx-auto pt-20 pb-28 bg-surface min-h-screen outline-none"></main>
+
+    <div id="toast" role="status" aria-live="polite" class="fixed top-20 left-1/2 -translate-x-1/2 z-[60] bg-primary text-on-primary px-4 py-2 font-label-code text-label-code uppercase tracking-wider rounded shadow-[3px_3px_0px_#000000] pointer-events-none transition-all duration-200 opacity-0 -translate-y-2"></div>
+
+    <div id="modal-root"></div>
+
+    <nav aria-label="Primary" class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.6)]">
+      <div class="grid grid-cols-5 h-16 items-center px-space-xs max-w-2xl mx-auto">
+        <a data-path="explore" href="#/explore" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">folder</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Explore</span></a>
+        <a data-path="skills" href="#/skills" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">terminal</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Skills</span></a>
+        <a data-path="prompts" href="#/prompts" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">auto_awesome</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Prompts</span></a>
+        <a data-path="repos" href="#/repos" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">code</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Repos</span></a>
+        <a data-path="saved" href="#/saved" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">bookmark</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Saved</span></a>
+      </div>
+    </nav>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
