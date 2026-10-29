@@ -58,3 +58,9 @@ test("the AI status doesn't list which secret names the Worker looks for", async
   assert.equal(body.enabled, false);
   assert.doesNotMatch(body.reason, /API_KEY/);
 });
+
+test("an AI key alone doesn't turn on per-search AI ranking on the Worker", async () => {
+  const env = { ...fakeEnv(), GEMINI_API_KEY: "test-key" };
+  const body = await (await worker.fetch(new Request(`${ORIGIN}/api/rank?q=browser`), env)).json();
+  assert.equal(body.ai, false);
+});

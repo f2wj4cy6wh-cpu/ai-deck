@@ -9,7 +9,7 @@ import { mergeSeed, mergeTrending } from "../server/catalog.js";
 import { cleanAutoTags } from "../server/search.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SHARED = ["agents.js", "catalog.js", "search.js", "api.js"];
+const SHARED = ["agents.js", "catalog.js", "search.js", "api.js", "video.js"];
 const libDir = path.join(root, "public", "lib");
 
 fs.mkdirSync(libDir, { recursive: true });

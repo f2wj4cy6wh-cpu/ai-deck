@@ -113,7 +113,7 @@ export function tokenize(text) {
 // ---------- Typo tolerance ----------
 
 /** Optimal-string-alignment distance (edits incl. adjacent swaps), giving up past `max`. */
-function editDistance(a, b, max) {
+export function editDistance(a, b, max) {
   if (Math.abs(a.length - b.length) > max) return max + 1;
   let prev2 = null;
   let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
