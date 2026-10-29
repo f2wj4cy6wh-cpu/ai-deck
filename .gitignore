@@ -9,3 +9,4 @@ data/ingest.log
 .wrangler/
 .dev.vars*
 data/trending.json
+public/catalog.json.br

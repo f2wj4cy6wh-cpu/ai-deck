@@ -126,7 +126,7 @@ export function normalizeItem(item) {
     useCases: [],
     requires: [],
     summary: "",
-    description: "",
+    description: item.summary ?? "", // the web build omits descriptions that only repeat the summary
     ...item,
     name: VAGUE_NAME.test(item.name) && item.repo ? item.repo : item.name,
     level: LEVELS.includes(item.level) ? item.level : inferLevel(item),

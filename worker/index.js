@@ -74,9 +74,28 @@ async function readLimited(request) {
   return new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
 }
 
+/**
+ * catalog.json is the one big download. scripts/build-web.js writes a max-level brotli copy next to it;
+ * hand that over as-is (encodeBody: "manual") instead of letting the edge recompress at a lower level.
+ * The copy's own ETag drives revalidation, so a repeat visit still gets a 304.
+ */
+async function serveCatalog(request, env, url) {
+  if (!/\bbr\b/.test(request.headers.get("accept-encoding") ?? "")) return env.ASSETS.fetch(request);
+  const res = await env.ASSETS.fetch(new Request(`${url.origin}/catalog.json.br`, request));
+  if (res.status !== 200 && res.status !== 304) return env.ASSETS.fetch(request);
+  const headers = new Headers(res.headers);
+  headers.set("content-type", "application/json");
+  headers.set("content-encoding", "br");
+  headers.set("vary", "accept-encoding");
+  headers.set("x-content-type-options", "nosniff");
+  headers.delete("content-length");
+  return new Response(res.status === 304 ? null : res.body, { status: res.status, headers, encodeBody: "manual" });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/catalog.json") return serveCatalog(request, env, url);
     if (!AI_KEY_NAMES.some((name) => env[name])) disableAi(`AI ranking is not configured on this deployment`);
     if (!SERVER_ROUTES.has(url.pathname)) {
       // Search, listings and stats run in the browser; anything else under /api/ doesn't exist here.

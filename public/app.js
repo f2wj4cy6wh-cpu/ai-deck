@@ -89,9 +89,18 @@ function localApi() {
     const res = await fetch("/catalog.json");
     if (!res.ok) throw new Error(`Could not load the catalog (${res.status})`);
     const catalog = buildCatalog(await res.json(), "catalog.json");
-    const index = buildIndex(catalog.items);
+    // Listings only need the catalog; the search index (the slow part of startup) is built on the
+    // first search, or while the browser is idle after the first page shows, whichever comes first.
+    let index = null;
+    const getIndex = () => (index ??= buildIndex(catalog.items));
+    (window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1500)))(getIndex, { timeout: 4000 });
     return createApi({
-      state: () => ({ catalog, index }),
+      state: () => ({
+        catalog,
+        get index() {
+          return getIndex();
+        },
+      }),
       rerank: async () => null,
       aiStatus: () => state.ai,
       saveSubmission: async () => {
@@ -646,7 +655,7 @@ function hrefApi(path, params) {
   return `${path}?${qs}`;
 }
 
-async function viewSearch(params, token) {
+async function viewSearch(params, token, { live = false } = {}) {
   const q = (params.get("q") ?? "").trim();
   const type = params.get("type") ?? "";
   const typeTabs = [["", "All"], ["skill", "Skills"], ["plugin", "Plugins"], ["mcp", "MCP"], ["prompt", "Prompts"], ["repo", "Repos"]]
@@ -663,7 +672,7 @@ async function viewSearch(params, token) {
       </div>`);
   }
 
-  pushRecent(q);
+  if (!live) pushRecent(q); // half-typed words shouldn't fill the recent list
   const limit = Math.min(300, Number(params.get("limit")) || PAGE_SIZE);
   const official = params.get("official") ?? "";
   const easy = params.get("easy") ?? "";
@@ -710,7 +719,8 @@ async function viewSearch(params, token) {
   return {
     html: page(`${head}${filterBar("search", params)}${agentNote}${correction}${intentChips}${body}`),
     // Phase 2, once the page is in the DOM: ask the AI to rerank and explain, then patch #ai-slot.
-    after: () => local.results.length && enhanceWithAi(q, type, token, params),
+    // Not on every keystroke: AI ranking costs a model call, so it waits for Enter.
+    after: () => !live && local.results.length && enhanceWithAi(q, type, token, params),
   };
 }
 
@@ -915,12 +925,24 @@ async function render() {
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
-  $view.innerHTML = page(loadingBlock());
+  // A live render (search as you type) keeps the old results up until the new ones are ready.
+  const live = state.live;
+  state.live = false;
+  if (!live) $view.innerHTML = page(loadingBlock());
   try {
     // Views return an HTML string, or { html, after } when they need to run once mounted.
-    const out = await view.render(params, token);
+    const out = await view.render(params, token, { live });
     if (token !== state.renderToken) return;
+    // Carry over what's in the box right now, caret included: keys typed during the render aren't lost.
+    const typing = live && document.activeElement?.matches(".search-form input") ? document.activeElement : null;
+    const kept = typing && { value: typing.value, start: typing.selectionStart, end: typing.selectionEnd };
     $view.innerHTML = typeof out === "string" ? out : out.html;
+    if (kept) {
+      const input = $view.querySelector(".search-form input");
+      input.value = kept.value;
+      input.focus();
+      input.setSelectionRange(kept.start, kept.end);
+    }
     out.after?.();
   } catch (error) {
     if (token !== state.renderToken) return;
@@ -978,12 +1000,33 @@ function closeModal() {
 
 // ---------- events ----------
 
+// Search as you type on the search page: results follow the box after a short pause. replaceState, so
+// Back skips the half-typed queries.
+let liveTimer;
+document.addEventListener("input", (event) => {
+  const input = event.target;
+  if (!input.matches?.(".search-form input") || parseHash().route !== "search") return;
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => {
+    const q = input.value.trim();
+    const { params } = parseHash();
+    if (q === (params.get("q") ?? "").trim() || q.length === 1) return;
+    history.replaceState(null, "", hrefWith("search", { ...Object.fromEntries(params), q, limit: null }));
+    state.live = true;
+    render();
+  }, 250);
+});
+
 document.addEventListener("submit", async (event) => {
   const form = event.target;
   if (form.classList.contains("search-form")) {
     event.preventDefault();
     const q = new FormData(form).get("q").trim();
-    location.hash = hrefWith("search", { q, type: form.dataset.type });
+    clearTimeout(liveTimer);
+    const next = hrefWith("search", { q, type: form.dataset.type });
+    // Live search may already have put this query in the address bar: render anyway, as a full search.
+    if (next === location.hash) render();
+    else location.hash = next;
     return;
   }
   if (form.id === "submit-form") {

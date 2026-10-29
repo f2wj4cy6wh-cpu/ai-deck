@@ -1,0 +1,21 @@
+# AI Deck
+
+> A plain-English finder for AI agent add-ons: skills, plugins, MCP servers, prompts and GitHub repos for Claude Code, the Claude app, ChatGPT, Codex, Gemini CLI, the Gemini app, Cursor, GitHub Copilot, Windsurf and other MCP apps. Every item lists the agents it works with and how to install it in each one.
+
+Search runs in the browser over one JSON file, so an agent can read the same data directly.
+
+## Data
+
+- [Catalog (JSON)](/catalog.json): every item with `id`, `type` (skill, plugin, mcp, repo, prompt), `name`, `summary`, `tags`, `useCases`, `level`, `install`, `repo`, `stars`, `pushedAt`, `license`, `official`, and `trending` (`weekly` stars gained) for repos rising on GitHub.
+
+## Pages
+
+- [Explore](/#/explore): categories, trending repos and picks
+- [Search](/#/search?q=let%20my%20ai%20use%20a%20web%20browser): plain-English search, e.g. `/#/search?q=<what you need>`
+- [Trending](/#/trending): AI repos gaining the most GitHub stars this week
+- [Prompts](/#/prompts): ready-to-use prompts for everyday tasks
+- [Repos](/#/repos): AI repos by trust, stars, recent updates or trending
+
+## Notes
+
+- Install commands come from each project's own listing. Check the trust score and publisher before running one.

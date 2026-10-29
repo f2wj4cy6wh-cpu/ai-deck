@@ -5,11 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>AI Deck</title>
     <meta name="description" content="Find skills, plugins, MCP servers, prompts and repos for Claude, ChatGPT, Gemini, Codex, Cursor and Copilot by describing what you need in plain English." />
+    <meta name="theme-color" content="#101412" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AI Deck: find AI tools in plain English" />
+    <meta property="og:description" content="Skills, plugins, MCP servers, prompts and repos for Claude, ChatGPT, Gemini, Codex, Cursor and Copilot, with install steps for each." />
+    <meta name="twitter:card" content="summary" />
+    <!-- Start the big downloads while app.js is still loading its imports. -->
+    <link rel="preload" href="/catalog.json" as="fetch" crossorigin="anonymous" />
+    <link rel="modulepreload" href="/app.js" />
+    <link rel="modulepreload" href="/lib/catalog.js" />
+    <link rel="modulepreload" href="/lib/search.js" />
+    <link rel="modulepreload" href="/lib/api.js" />
+    <link rel="modulepreload" href="/lib/agents.js" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..900&family=JetBrains+Mono:wght@400..800&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet" />
+    <!-- Only the icons app.js and this page use (≈8 KB instead of 1 MB). Add a new icon name here, alphabetically. -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&icon_names=add_box,auto_awesome,bolt,bookmark,chevron_right,close,code,content_copy,extension,filter_alt,folder,fork_right,help,hub,keyboard_return,play_arrow,psychology,rocket_launch,search,star,subdirectory_arrow_right,sync,terminal,trending_up,upload,verified&display=block" rel="stylesheet" />
     <link href="/styles.css" rel="stylesheet" />
   </head>
   <body class="bg-surface text-on-surface flex flex-col min-h-screen">
@@ -17,7 +30,7 @@
 
     <header class="fixed top-0 w-full z-50 pt-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.5)]">
       <div class="h-16 px-space-md max-w-2xl lg:max-w-6xl mx-auto flex items-center justify-between gap-space-sm lg:gap-space-lg">
-        <a href="#/explore" class="flex items-center gap-space-sm min-w-0" aria-label="AI Deck home">
+        <a href="#/explore" class="flex items-center gap-space-sm min-w-0">
           <span class="w-8 h-8 shrink-0 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center shadow-[2px_2px_0px_#000000] font-label-code text-label-code" aria-hidden="true">&gt;_</span>
           <span class="flex flex-col min-w-0">
             <span class="font-label-code text-label-code text-primary tracking-wider uppercase">AI_DECK</span>
