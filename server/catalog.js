@@ -135,6 +135,8 @@ export function normalizeItem(item) {
   };
   normalized.tags = [...new Set(normalized.tags.map((t) => String(t).toLowerCase()))];
   normalized.url ??= item.repo ? `https://github.com/${item.repo}` : item.homepage ?? null;
+  // Links come from third-party listings and end up in href: only web links (no javascript: or data:).
+  if (normalized.url && !/^https?:\/\//i.test(normalized.url)) normalized.url = null;
   normalized.trust = trustScore(normalized);
   return applyAgentSupport(normalized);
 }

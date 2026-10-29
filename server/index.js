@@ -72,7 +72,14 @@ function readBody(req, limit = 16_384) {
 }
 
 function serveStatic(res, url) {
-  const requested = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+  let requested;
+  try {
+    requested = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+  } catch {
+    // Malformed escape like /%E0: decodeURIComponent throws, which would take the server down.
+    res.writeHead(400).end();
+    return;
+  }
   const file = path.resolve(PUBLIC_DIR, "." + requested);
   if (!file.startsWith(PUBLIC_DIR + path.sep)) {
     res.writeHead(403).end();
