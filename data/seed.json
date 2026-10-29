@@ -5,13 +5,30 @@
       "id": "mcp:playwright",
       "type": "mcp",
       "name": "Playwright MCP",
-      "summary": "Lets Claude open a real web browser, click around, fill forms and take screenshots.",
+      "summary": "Lets your AI open a real web browser, click around, fill forms and take screenshots.",
       "description": "Browser automation MCP server from Microsoft. Uses accessibility snapshots instead of pixels, so it is fast and reliable for navigating sites, testing web apps and scraping pages.",
-      "tags": ["browser", "automation", "testing", "web", "scraping", "screenshot"],
-      "useCases": ["control a web browser", "test my website", "fill out a form online", "take a screenshot of a page", "scrape a website"],
+      "tags": [
+        "browser",
+        "automation",
+        "testing",
+        "web",
+        "scraping",
+        "screenshot"
+      ],
+      "useCases": [
+        "control a web browser",
+        "test my website",
+        "fill out a form online",
+        "take a screenshot of a page",
+        "scrape a website"
+      ],
       "level": "beginner",
-      "requires": ["Node.js 18+"],
-      "install": { "command": "claude mcp add playwright -- npx @playwright/mcp@latest" },
+      "requires": [
+        "Node.js 18+"
+      ],
+      "install": {
+        "command": "claude mcp add playwright -- npx @playwright/mcp@latest"
+      },
       "repo": "microsoft/playwright-mcp",
       "author": "Microsoft",
       "official": true
@@ -20,13 +37,30 @@
       "id": "mcp:chrome-devtools",
       "type": "mcp",
       "name": "Chrome DevTools MCP",
-      "summary": "Gives Claude Chrome's developer tools so it can debug pages, read console errors and measure performance.",
+      "summary": "Gives your AI Chrome's developer tools so it can debug pages, read console errors and measure performance.",
       "description": "Official Chrome DevTools MCP server. Inspect network requests, read console logs, record performance traces and automate Chrome through the DevTools protocol.",
-      "tags": ["browser", "debugging", "performance", "devtools", "web", "console"],
-      "useCases": ["why is my website slow", "debug javascript errors in the browser", "check network requests", "run a lighthouse audit"],
+      "tags": [
+        "browser",
+        "debugging",
+        "performance",
+        "devtools",
+        "web",
+        "console"
+      ],
+      "useCases": [
+        "why is my website slow",
+        "debug javascript errors in the browser",
+        "check network requests",
+        "run a lighthouse audit"
+      ],
       "level": "intermediate",
-      "requires": ["Node.js 20+", "Google Chrome"],
-      "install": { "command": "claude mcp add chrome-devtools -- npx chrome-devtools-mcp@latest" },
+      "requires": [
+        "Node.js 20+",
+        "Google Chrome"
+      ],
+      "install": {
+        "command": "claude mcp add chrome-devtools -- npx chrome-devtools-mcp@latest"
+      },
       "repo": "ChromeDevTools/chrome-devtools-mcp",
       "author": "Google Chrome",
       "official": true
@@ -35,13 +69,28 @@
       "id": "mcp:context7",
       "type": "mcp",
       "name": "Context7",
-      "summary": "Feeds Claude up-to-date documentation for thousands of libraries so its code examples aren't stale.",
+      "summary": "Feeds your AI up-to-date documentation for thousands of libraries so its code examples aren't stale.",
       "description": "Pulls current, version-specific docs and code examples for libraries and frameworks straight into the prompt.",
-      "tags": ["docs", "documentation", "libraries", "api", "reference"],
-      "useCases": ["get up to date docs", "stop claude using old api versions", "look up library documentation", "how do I use this framework"],
+      "tags": [
+        "docs",
+        "documentation",
+        "libraries",
+        "api",
+        "reference"
+      ],
+      "useCases": [
+        "get up to date docs",
+        "stop claude using old api versions",
+        "look up library documentation",
+        "how do I use this framework"
+      ],
       "level": "beginner",
-      "requires": ["Node.js 18+"],
-      "install": { "command": "claude mcp add context7 -- npx -y @upstash/context7-mcp" },
+      "requires": [
+        "Node.js 18+"
+      ],
+      "install": {
+        "command": "claude mcp add context7 -- npx -y @upstash/context7-mcp"
+      },
       "repo": "upstash/context7",
       "author": "Upstash"
     },
@@ -49,15 +98,34 @@
       "id": "mcp:github",
       "type": "mcp",
       "name": "GitHub MCP Server",
-      "summary": "Lets Claude read and manage your GitHub repos, issues, pull requests and Actions.",
+      "summary": "Lets your AI read and manage your GitHub repos, issues, pull requests and Actions.",
       "description": "GitHub's official MCP server. Search code, open and review pull requests, triage issues and inspect CI runs.",
-      "tags": ["github", "git", "pull-requests", "issues", "code-review", "ci"],
-      "useCases": ["manage github issues", "review a pull request", "open a pr", "check why ci failed", "search code on github"],
+      "tags": [
+        "github",
+        "git",
+        "pull-requests",
+        "issues",
+        "code-review",
+        "ci"
+      ],
+      "useCases": [
+        "manage github issues",
+        "review a pull request",
+        "open a pr",
+        "check why ci failed",
+        "search code on github"
+      ],
       "level": "intermediate",
-      "requires": ["GitHub personal access token"],
+      "requires": [
+        "GitHub personal access token"
+      ],
       "install": {
         "command": "claude mcp add --transport http github https://api.githubcopilot.com/mcp/ --header \"Authorization: Bearer YOUR_GITHUB_PAT\"",
-        "steps": ["Create a fine-grained personal access token at github.com/settings/tokens", "Replace YOUR_GITHUB_PAT in the command with it", "Run the command in your terminal"]
+        "steps": [
+          "Create a fine-grained personal access token at github.com/settings/tokens",
+          "Replace YOUR_GITHUB_PAT in the command with it",
+          "Run the command in your terminal"
+        ]
       },
       "repo": "github/github-mcp-server",
       "author": "GitHub",
@@ -67,15 +135,29 @@
       "id": "mcp:filesystem",
       "type": "mcp",
       "name": "Filesystem",
-      "summary": "Lets Claude read, write and search files in folders you choose.",
+      "summary": "Lets your AI read, write and search files in folders you choose.",
       "description": "Reference MCP server for secure file operations with configurable allowed directories.",
-      "tags": ["files", "filesystem", "folders", "local"],
-      "useCases": ["let claude read my files", "organize files in a folder", "search documents on my computer"],
+      "tags": [
+        "files",
+        "filesystem",
+        "folders",
+        "local"
+      ],
+      "useCases": [
+        "let claude read my files",
+        "organize files in a folder",
+        "search documents on my computer"
+      ],
       "level": "beginner",
-      "requires": ["Node.js 18+"],
+      "requires": [
+        "Node.js 18+"
+      ],
       "install": {
         "command": "claude mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem C:/path/to/folder",
-        "steps": ["Change C:/path/to/folder to the folder you want Claude to access", "Run the command"]
+        "steps": [
+          "Change C:/path/to/folder to the folder you want Claude to access",
+          "Run the command"
+        ]
       },
       "repo": "modelcontextprotocol/servers",
       "author": "Model Context Protocol",
@@ -85,13 +167,26 @@
       "id": "mcp:memory",
       "type": "mcp",
       "name": "Memory (Knowledge Graph)",
-      "summary": "Gives Claude a long-term memory it can save facts to and recall later.",
+      "summary": "Gives your AI a long-term memory it can save facts to and recall later.",
       "description": "Reference MCP server that stores entities and relations in a local knowledge graph.",
-      "tags": ["memory", "knowledge-graph", "notes", "persistence"],
-      "useCases": ["make claude remember things", "long term memory", "remember my preferences between chats"],
+      "tags": [
+        "memory",
+        "knowledge-graph",
+        "notes",
+        "persistence"
+      ],
+      "useCases": [
+        "make claude remember things",
+        "long term memory",
+        "remember my preferences between chats"
+      ],
       "level": "beginner",
-      "requires": ["Node.js 18+"],
-      "install": { "command": "claude mcp add memory -- npx -y @modelcontextprotocol/server-memory" },
+      "requires": [
+        "Node.js 18+"
+      ],
+      "install": {
+        "command": "claude mcp add memory -- npx -y @modelcontextprotocol/server-memory"
+      },
       "repo": "modelcontextprotocol/servers",
       "author": "Model Context Protocol",
       "official": true
@@ -100,13 +195,26 @@
       "id": "mcp:sequential-thinking",
       "type": "mcp",
       "name": "Sequential Thinking",
-      "summary": "A scratchpad tool that helps Claude break hard problems into steps and revise its plan.",
+      "summary": "A scratchpad tool that helps your AI break hard problems into steps and revise its plan.",
       "description": "Reference MCP server for dynamic, reflective step-by-step problem solving.",
-      "tags": ["reasoning", "planning", "thinking", "problem-solving"],
-      "useCases": ["help claude plan complex tasks", "think step by step", "break down a hard problem"],
+      "tags": [
+        "reasoning",
+        "planning",
+        "thinking",
+        "problem-solving"
+      ],
+      "useCases": [
+        "help claude plan complex tasks",
+        "think step by step",
+        "break down a hard problem"
+      ],
       "level": "intermediate",
-      "requires": ["Node.js 18+"],
-      "install": { "command": "claude mcp add sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking" },
+      "requires": [
+        "Node.js 18+"
+      ],
+      "install": {
+        "command": "claude mcp add sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking"
+      },
       "repo": "modelcontextprotocol/servers",
       "author": "Model Context Protocol",
       "official": true
@@ -115,13 +223,27 @@
       "id": "mcp:fetch",
       "type": "mcp",
       "name": "Fetch",
-      "summary": "Lets Claude download a web page and read it as clean text.",
+      "summary": "Lets your AI download a web page and read it as clean text.",
       "description": "Reference MCP server that fetches URLs and converts HTML to markdown for efficient reading.",
-      "tags": ["web", "fetch", "scraping", "markdown", "reading"],
-      "useCases": ["read a web page", "summarize an article from a link", "download a url"],
+      "tags": [
+        "web",
+        "fetch",
+        "scraping",
+        "markdown",
+        "reading"
+      ],
+      "useCases": [
+        "read a web page",
+        "summarize an article from a link",
+        "download a url"
+      ],
       "level": "beginner",
-      "requires": ["Python + uv"],
-      "install": { "command": "claude mcp add fetch -- uvx mcp-server-fetch" },
+      "requires": [
+        "Python + uv"
+      ],
+      "install": {
+        "command": "claude mcp add fetch -- uvx mcp-server-fetch"
+      },
       "repo": "modelcontextprotocol/servers",
       "author": "Model Context Protocol",
       "official": true
@@ -130,13 +252,26 @@
       "id": "mcp:git",
       "type": "mcp",
       "name": "Git",
-      "summary": "Lets Claude read git history, diffs and branches in a local repository.",
+      "summary": "Lets your AI read git history, diffs and branches in a local repository.",
       "description": "Reference MCP server for reading, searching and manipulating git repositories.",
-      "tags": ["git", "version-control", "commits", "diff"],
-      "useCases": ["explain my git history", "what changed in this branch", "look at commits"],
+      "tags": [
+        "git",
+        "version-control",
+        "commits",
+        "diff"
+      ],
+      "useCases": [
+        "explain my git history",
+        "what changed in this branch",
+        "look at commits"
+      ],
       "level": "intermediate",
-      "requires": ["Python + uv"],
-      "install": { "command": "claude mcp add git -- uvx mcp-server-git --repository C:/path/to/repo" },
+      "requires": [
+        "Python + uv"
+      ],
+      "install": {
+        "command": "claude mcp add git -- uvx mcp-server-git --repository C:/path/to/repo"
+      },
       "repo": "modelcontextprotocol/servers",
       "author": "Model Context Protocol",
       "official": true
@@ -145,13 +280,32 @@
       "id": "mcp:notion",
       "type": "mcp",
       "name": "Notion MCP",
-      "summary": "Lets Claude search, read and update your Notion pages and databases.",
+      "summary": "Lets your AI search, read and update your Notion pages and databases.",
       "description": "Notion's hosted MCP server with OAuth sign-in. Search your workspace, create pages and update databases.",
-      "tags": ["notion", "notes", "wiki", "docs", "productivity"],
-      "useCases": ["search my notion", "write meeting notes to notion", "update a notion database", "connect my notes"],
+      "tags": [
+        "notion",
+        "notes",
+        "wiki",
+        "docs",
+        "productivity"
+      ],
+      "useCases": [
+        "search my notion",
+        "write meeting notes to notion",
+        "update a notion database",
+        "connect my notes"
+      ],
       "level": "beginner",
-      "requires": ["Notion account"],
-      "install": { "command": "claude mcp add --transport http notion https://mcp.notion.com/mcp", "steps": ["Run the command", "Inside Claude Code type /mcp and sign in to Notion"] },
+      "requires": [
+        "Notion account"
+      ],
+      "install": {
+        "command": "claude mcp add --transport http notion https://mcp.notion.com/mcp",
+        "steps": [
+          "Run the command",
+          "Inside Claude Code type /mcp and sign in to Notion"
+        ]
+      },
       "repo": "makenotion/notion-mcp-server",
       "author": "Notion",
       "official": true
@@ -160,13 +314,32 @@
       "id": "mcp:sentry",
       "type": "mcp",
       "name": "Sentry MCP",
-      "summary": "Lets Claude look up crashes and errors from your Sentry projects and help fix them.",
+      "summary": "Lets your AI look up crashes and errors from your Sentry projects and help fix them.",
       "description": "Sentry's hosted MCP server. Query issues, stack traces and releases, and hand them to Claude for root-cause analysis.",
-      "tags": ["errors", "monitoring", "debugging", "crashes", "observability"],
-      "useCases": ["why is my app crashing", "fix production errors", "look at error reports", "debug a stack trace"],
+      "tags": [
+        "errors",
+        "monitoring",
+        "debugging",
+        "crashes",
+        "observability"
+      ],
+      "useCases": [
+        "why is my app crashing",
+        "fix production errors",
+        "look at error reports",
+        "debug a stack trace"
+      ],
       "level": "intermediate",
-      "requires": ["Sentry account"],
-      "install": { "command": "claude mcp add --transport http sentry https://mcp.sentry.dev/mcp", "steps": ["Run the command", "Type /mcp in Claude Code and authenticate with Sentry"] },
+      "requires": [
+        "Sentry account"
+      ],
+      "install": {
+        "command": "claude mcp add --transport http sentry https://mcp.sentry.dev/mcp",
+        "steps": [
+          "Run the command",
+          "Type /mcp in Claude Code and authenticate with Sentry"
+        ]
+      },
       "repo": "getsentry/sentry-mcp",
       "author": "Sentry",
       "official": true
@@ -175,13 +348,28 @@
       "id": "mcp:stripe",
       "type": "mcp",
       "name": "Stripe MCP",
-      "summary": "Lets Claude work with your Stripe account: customers, payments, invoices and docs.",
+      "summary": "Lets your AI work with your Stripe account: customers, payments, invoices and docs.",
       "description": "Stripe's hosted MCP server for payments, billing objects and Stripe documentation search.",
-      "tags": ["payments", "billing", "stripe", "invoices", "ecommerce"],
-      "useCases": ["accept payments", "look up a customer payment", "create an invoice", "set up subscriptions"],
+      "tags": [
+        "payments",
+        "billing",
+        "stripe",
+        "invoices",
+        "ecommerce"
+      ],
+      "useCases": [
+        "accept payments",
+        "look up a customer payment",
+        "create an invoice",
+        "set up subscriptions"
+      ],
       "level": "intermediate",
-      "requires": ["Stripe account"],
-      "install": { "command": "claude mcp add --transport http stripe https://mcp.stripe.com" },
+      "requires": [
+        "Stripe account"
+      ],
+      "install": {
+        "command": "claude mcp add --transport http stripe https://mcp.stripe.com"
+      },
       "repo": "stripe/agent-toolkit",
       "author": "Stripe",
       "official": true
@@ -190,13 +378,34 @@
       "id": "mcp:supabase",
       "type": "mcp",
       "name": "Supabase MCP",
-      "summary": "Lets Claude design tables, run SQL and manage your Supabase Postgres database.",
+      "summary": "Lets your AI design tables, run SQL and manage your Supabase Postgres database.",
       "description": "Connect Claude to Supabase projects: schema design, migrations, SQL queries, edge functions and logs.",
-      "tags": ["database", "postgres", "sql", "supabase", "backend"],
-      "useCases": ["set up a database", "write sql queries", "design database tables", "query my postgres"],
+      "tags": [
+        "database",
+        "postgres",
+        "sql",
+        "supabase",
+        "backend"
+      ],
+      "useCases": [
+        "set up a database",
+        "write sql queries",
+        "design database tables",
+        "query my postgres"
+      ],
       "level": "intermediate",
-      "requires": ["Supabase access token", "Node.js 18+"],
-      "install": { "command": "claude mcp add supabase -- npx -y @supabase/mcp-server-supabase@latest --read-only --access-token YOUR_TOKEN", "steps": ["Create a personal access token in the Supabase dashboard", "Replace YOUR_TOKEN", "Keep --read-only until you trust it"] },
+      "requires": [
+        "Supabase access token",
+        "Node.js 18+"
+      ],
+      "install": {
+        "command": "claude mcp add supabase -- npx -y @supabase/mcp-server-supabase@latest --read-only --access-token YOUR_TOKEN",
+        "steps": [
+          "Create a personal access token in the Supabase dashboard",
+          "Replace YOUR_TOKEN",
+          "Keep --read-only until you trust it"
+        ]
+      },
       "repo": "supabase-community/supabase-mcp",
       "author": "Supabase"
     },
@@ -204,13 +413,26 @@
       "id": "mcp:cloudflare-docs",
       "type": "mcp",
       "name": "Cloudflare Docs MCP",
-      "summary": "Lets Claude search Cloudflare's developer documentation while it builds on Workers.",
+      "summary": "Lets your AI search Cloudflare's developer documentation while it builds on Workers.",
       "description": "Remote MCP server from Cloudflare for searching docs on Workers, Pages, R2, D1 and more.",
-      "tags": ["cloudflare", "deploy", "hosting", "docs", "workers", "serverless"],
-      "useCases": ["deploy my site", "build on cloudflare workers", "host a website for free"],
+      "tags": [
+        "cloudflare",
+        "deploy",
+        "hosting",
+        "docs",
+        "workers",
+        "serverless"
+      ],
+      "useCases": [
+        "deploy my site",
+        "build on cloudflare workers",
+        "host a website for free"
+      ],
       "level": "intermediate",
       "requires": [],
-      "install": { "command": "claude mcp add --transport http cloudflare-docs https://docs.mcp.cloudflare.com/mcp" },
+      "install": {
+        "command": "claude mcp add --transport http cloudflare-docs https://docs.mcp.cloudflare.com/mcp"
+      },
       "repo": "cloudflare/mcp-server-cloudflare",
       "author": "Cloudflare",
       "official": true
@@ -219,15 +441,34 @@
       "id": "skill:anthropic-document-skills",
       "type": "skill",
       "name": "Document Skills (PDF, Word, Excel, PowerPoint)",
-      "summary": "Teaches Claude to create and edit real .docx, .xlsx, .pptx and PDF files.",
+      "summary": "Teaches your AI to create and edit real .docx, .xlsx, .pptx and PDF files.",
       "description": "Anthropic's official document skills: build spreadsheets with formulas, slide decks, Word documents and fill or merge PDFs.",
-      "tags": ["pdf", "docx", "xlsx", "pptx", "documents", "office", "slides", "spreadsheet"],
-      "useCases": ["make a powerpoint", "create slides from my notes", "build an excel spreadsheet", "edit a word document", "fill in a pdf form"],
+      "tags": [
+        "pdf",
+        "docx",
+        "xlsx",
+        "pptx",
+        "documents",
+        "office",
+        "slides",
+        "spreadsheet"
+      ],
+      "useCases": [
+        "make a powerpoint",
+        "create slides from my notes",
+        "build an excel spreadsheet",
+        "edit a word document",
+        "fill in a pdf form"
+      ],
       "level": "beginner",
       "requires": [],
       "install": {
         "command": "/plugin marketplace add anthropics/skills\n/plugin install document-skills@anthropic-agent-skills",
-        "steps": ["Open Claude Code", "Paste the first line and press enter", "Paste the second line and press enter"]
+        "steps": [
+          "Open Claude Code",
+          "Paste the first line and press enter",
+          "Paste the second line and press enter"
+        ]
       },
       "repo": "anthropics/skills",
       "author": "Anthropic",
@@ -239,11 +480,25 @@
       "name": "Example Skills (design, testing, MCP builder)",
       "summary": "A starter set of Anthropic skills: frontend design, web app testing, MCP server builder, skill creator and more.",
       "description": "Includes skill-creator, mcp-builder, webapp-testing, frontend-design, canvas-design, algorithmic-art and theme-factory.",
-      "tags": ["design", "frontend", "testing", "mcp", "skills", "art"],
-      "useCases": ["make my own skill", "build an mcp server", "design a nicer website", "test my web app"],
+      "tags": [
+        "design",
+        "frontend",
+        "testing",
+        "mcp",
+        "skills",
+        "art"
+      ],
+      "useCases": [
+        "make my own skill",
+        "build an mcp server",
+        "design a nicer website",
+        "test my web app"
+      ],
       "level": "beginner",
       "requires": [],
-      "install": { "command": "/plugin marketplace add anthropics/skills\n/plugin install example-skills@anthropic-agent-skills" },
+      "install": {
+        "command": "/plugin marketplace add anthropics/skills\n/plugin install example-skills@anthropic-agent-skills"
+      },
       "repo": "anthropics/skills",
       "author": "Anthropic",
       "official": true
@@ -254,12 +509,24 @@
       "name": "claude-code",
       "summary": "Claude Code itself: the agentic coding tool that lives in your terminal.",
       "description": "Official repository for Claude Code: issues, changelog and example plugins.",
-      "tags": ["claude-code", "cli", "agents", "coding"],
-      "useCases": ["install claude code", "ai coding assistant in terminal", "report a claude code bug"],
+      "tags": [
+        "claude-code",
+        "cli",
+        "agents",
+        "coding"
+      ],
+      "useCases": [
+        "install claude code",
+        "ai coding assistant in terminal",
+        "report a claude code bug"
+      ],
       "level": "beginner",
       "repo": "anthropics/claude-code",
       "author": "Anthropic",
-      "official": true
+      "official": true,
+      "agents": [
+        "claude-code"
+      ]
     },
     {
       "id": "repo:anthropics/skills",
@@ -267,12 +534,27 @@
       "name": "skills",
       "summary": "Anthropic's public library of Agent Skills, plus the spec for writing your own.",
       "description": "Reference skills and templates for document processing, design, development and enterprise workflows.",
-      "tags": ["skills", "agent-skills", "templates"],
-      "useCases": ["examples of claude skills", "how to write a skill"],
+      "tags": [
+        "skills",
+        "agent-skills",
+        "templates"
+      ],
+      "useCases": [
+        "examples of claude skills",
+        "how to write a skill"
+      ],
       "level": "beginner",
       "repo": "anthropics/skills",
       "author": "Anthropic",
-      "official": true
+      "official": true,
+      "agents": [
+        "claude-code",
+        "claude",
+        "codex",
+        "gemini",
+        "cursor",
+        "copilot"
+      ]
     },
     {
       "id": "repo:modelcontextprotocol/servers",
@@ -280,8 +562,16 @@
       "name": "servers",
       "summary": "Reference MCP servers maintained by the Model Context Protocol team.",
       "description": "Filesystem, Git, Fetch, Memory, Sequential Thinking and other reference implementations, plus links to community servers.",
-      "tags": ["mcp", "servers", "reference", "tools"],
-      "useCases": ["example mcp servers", "official mcp servers list"],
+      "tags": [
+        "mcp",
+        "servers",
+        "reference",
+        "tools"
+      ],
+      "useCases": [
+        "example mcp servers",
+        "official mcp servers list"
+      ],
       "level": "intermediate",
       "repo": "modelcontextprotocol/servers",
       "author": "Model Context Protocol",
@@ -293,8 +583,15 @@
       "name": "registry",
       "summary": "The official MCP Registry: a community catalog of published MCP servers.",
       "description": "Source for registry.modelcontextprotocol.io, the metadata service MCP clients use to discover servers.",
-      "tags": ["mcp", "registry", "catalog"],
-      "useCases": ["find mcp servers", "publish my mcp server"],
+      "tags": [
+        "mcp",
+        "registry",
+        "catalog"
+      ],
+      "useCases": [
+        "find mcp servers",
+        "publish my mcp server"
+      ],
       "level": "expert",
       "repo": "modelcontextprotocol/registry",
       "author": "Model Context Protocol",
@@ -306,11 +603,26 @@
       "name": "ECC (Everything Claude Code)",
       "summary": "A huge collection of agents, skills, hooks and commands for Claude Code and other agent harnesses.",
       "description": "Battle-tested configs: TDD, code review, security, planning workflows and language-specific reviewers.",
-      "tags": ["claude-code", "agents", "skills", "hooks", "workflow"],
-      "useCases": ["level up my claude code setup", "best claude code config", "lots of skills at once"],
+      "tags": [
+        "claude-code",
+        "agents",
+        "skills",
+        "hooks",
+        "workflow"
+      ],
+      "useCases": [
+        "level up my claude code setup",
+        "best claude code config",
+        "lots of skills at once"
+      ],
       "level": "intermediate",
       "repo": "affaan-m/ECC",
-      "author": "Affaan Mustafa"
+      "author": "Affaan Mustafa",
+      "agents": [
+        "claude-code",
+        "codex",
+        "cursor"
+      ]
     },
     {
       "id": "repo:ollama/ollama",
@@ -318,8 +630,17 @@
       "name": "ollama",
       "summary": "Run open-weight language models locally on your own computer.",
       "description": "CLI and server for downloading and running local LLMs with an OpenAI-compatible API.",
-      "tags": ["local-llm", "offline", "inference", "cli"],
-      "useCases": ["run ai models offline", "local llm on my laptop", "private ai without the cloud"],
+      "tags": [
+        "local-llm",
+        "offline",
+        "inference",
+        "cli"
+      ],
+      "useCases": [
+        "run ai models offline",
+        "local llm on my laptop",
+        "private ai without the cloud"
+      ],
       "level": "intermediate",
       "repo": "ollama/ollama",
       "author": "Ollama"
@@ -330,8 +651,17 @@
       "name": "langgraph",
       "summary": "A framework for building stateful, multi-step AI agents as graphs.",
       "description": "Low-level orchestration for long-running agents with persistence, human-in-the-loop and streaming.",
-      "tags": ["agents", "framework", "orchestration", "python"],
-      "useCases": ["build my own ai agent", "multi agent framework", "agent workflow orchestration"],
+      "tags": [
+        "agents",
+        "framework",
+        "orchestration",
+        "python"
+      ],
+      "useCases": [
+        "build my own ai agent",
+        "multi agent framework",
+        "agent workflow orchestration"
+      ],
       "level": "expert",
       "repo": "langchain-ai/langgraph",
       "author": "LangChain"
@@ -342,8 +672,15 @@
       "name": "awesome-mcp-servers",
       "summary": "A big community-maintained list of MCP servers, sorted by category.",
       "description": "Curated list of production-ready and experimental MCP servers.",
-      "tags": ["mcp", "awesome-list", "directory"],
-      "useCases": ["list of mcp servers", "browse mcp servers by category"],
+      "tags": [
+        "mcp",
+        "awesome-list",
+        "directory"
+      ],
+      "useCases": [
+        "list of mcp servers",
+        "browse mcp servers by category"
+      ],
       "level": "beginner",
       "repo": "punkpeye/awesome-mcp-servers",
       "author": "community"
@@ -354,20 +691,167 @@
       "name": "awesome-claude-code",
       "summary": "A curated list of Claude Code commands, workflows, hooks and resources.",
       "description": "Community collection of slash commands, CLAUDE.md files, tooling and guides.",
-      "tags": ["claude-code", "awesome-list", "workflow", "commands"],
-      "useCases": ["claude code tips", "slash command examples", "claude.md examples"],
+      "tags": [
+        "claude-code",
+        "awesome-list",
+        "workflow",
+        "commands"
+      ],
+      "useCases": [
+        "claude code tips",
+        "slash command examples",
+        "claude.md examples"
+      ],
       "level": "beginner",
       "repo": "hesreallyhim/awesome-claude-code",
+      "author": "community",
+      "agents": [
+        "claude-code"
+      ]
+    },
+    {
+      "id": "repo:openai/codex",
+      "type": "repo",
+      "name": "codex",
+      "summary": "OpenAI's Codex CLI: a coding agent that runs in your terminal.",
+      "description": "Lightweight coding agent from OpenAI with MCP support, skills and sandboxed command execution.",
+      "tags": [
+        "codex",
+        "openai",
+        "cli",
+        "agents",
+        "coding"
+      ],
+      "useCases": [
+        "install codex",
+        "openai coding agent in terminal",
+        "chatgpt for my code"
+      ],
+      "level": "beginner",
+      "agents": [
+        "codex",
+        "chatgpt"
+      ],
+      "repo": "openai/codex",
+      "author": "OpenAI",
+      "official": true
+    },
+    {
+      "id": "repo:openai/skills",
+      "type": "repo",
+      "name": "skills (OpenAI)",
+      "summary": "OpenAI's catalog of Agent Skills for Codex.",
+      "description": "Skills in the open SKILL.md format, curated for Codex.",
+      "tags": [
+        "skills",
+        "agent-skills",
+        "codex",
+        "openai"
+      ],
+      "useCases": [
+        "skills for codex",
+        "openai skills"
+      ],
+      "level": "beginner",
+      "agents": [
+        "codex"
+      ],
+      "repo": "openai/skills",
+      "author": "OpenAI",
+      "official": true
+    },
+    {
+      "id": "repo:google-gemini/gemini-cli",
+      "type": "repo",
+      "name": "gemini-cli",
+      "summary": "Google's Gemini CLI: an open-source AI agent for your terminal.",
+      "description": "Gemini in the terminal with MCP servers, extensions and a generous free tier.",
+      "tags": [
+        "gemini",
+        "google",
+        "cli",
+        "agents",
+        "coding"
+      ],
+      "useCases": [
+        "install gemini cli",
+        "free ai coding agent",
+        "gemini in terminal"
+      ],
+      "level": "beginner",
+      "agents": [
+        "gemini"
+      ],
+      "repo": "google-gemini/gemini-cli",
+      "author": "Google",
+      "official": true
+    },
+    {
+      "id": "repo:github/awesome-copilot",
+      "type": "repo",
+      "name": "awesome-copilot",
+      "summary": "Community instructions, prompts and chat modes for GitHub Copilot.",
+      "description": "GitHub's collection of custom instructions, prompt files, agents and MCP setups for Copilot.",
+      "tags": [
+        "copilot",
+        "vscode",
+        "prompts",
+        "awesome-list"
+      ],
+      "useCases": [
+        "copilot tips",
+        "custom instructions for copilot",
+        "copilot prompts"
+      ],
+      "level": "beginner",
+      "agents": [
+        "copilot"
+      ],
+      "repo": "github/awesome-copilot",
+      "author": "GitHub",
+      "official": true
+    },
+    {
+      "id": "repo:PatrickJS/awesome-cursorrules",
+      "type": "repo",
+      "name": "awesome-cursorrules",
+      "summary": "A big collection of Cursor rules files for different frameworks and languages.",
+      "description": "Community .cursorrules / project rules that tune Cursor's AI to your stack.",
+      "tags": [
+        "cursor",
+        "rules",
+        "prompts",
+        "awesome-list"
+      ],
+      "useCases": [
+        "cursor rules for react",
+        "configure cursor ai",
+        "cursor tips"
+      ],
+      "level": "beginner",
+      "agents": [
+        "cursor"
+      ],
+      "repo": "PatrickJS/awesome-cursorrules",
       "author": "community"
     },
     {
       "id": "prompt:staff-architect",
       "type": "prompt",
       "name": "Senior Staff Architect Persona",
-      "summary": "Makes Claude review your code like a principal engineer focused on scale and trade-offs.",
-      "tags": ["code-review", "architecture", "system-prompt", "scalability"],
-      "useCases": ["review my architecture", "is my code scalable", "tough code review"],
-      "category": "system",
+      "summary": "Makes your AI review your code like a principal engineer focused on scale and trade-offs.",
+      "tags": [
+        "code-review",
+        "architecture",
+        "system-prompt",
+        "scalability"
+      ],
+      "useCases": [
+        "review my architecture",
+        "is my code scalable",
+        "tough code review"
+      ],
+      "category": "coding",
       "level": "expert",
       "prompt": "Act as a Principal Systems Architect. Review the provided code for scale limits, memory leaks, concurrency hazards and idempotency guarantees. Present trade-offs as a Markdown table (option, benefit, cost, when to choose it) and push back on premature optimization."
     },
@@ -376,9 +860,18 @@
       "type": "prompt",
       "name": "Code Explainer for Beginners",
       "summary": "Explains any code with everyday analogies, common gotchas and a mini quiz.",
-      "tags": ["learning", "explain", "teaching", "beginner"],
-      "useCases": ["explain this code simply", "i am new to coding", "teach me what this does"],
-      "category": "teaching",
+      "tags": [
+        "learning",
+        "explain",
+        "teaching",
+        "beginner"
+      ],
+      "useCases": [
+        "explain this code simply",
+        "i am new to coding",
+        "teach me what this does"
+      ],
+      "category": "learning",
       "level": "beginner",
       "prompt": "Explain the following code as if I started programming two weeks ago. Describe each part with an everyday analogy (kitchen, plumbing, mail). Then list the three most common mistakes people make with code like this, and finish with a 3-question self-test with answers hidden at the end.\n\n<code>\nPASTE CODE HERE\n</code>"
     },
@@ -387,31 +880,60 @@
       "type": "prompt",
       "name": "Strict JSON Output",
       "summary": "Gets back clean JSON that matches a schema you provide, with no extra chatter.",
-      "tags": ["json", "structured-output", "schema", "extraction"],
-      "useCases": ["get json back", "extract data into json", "structured output"],
-      "category": "few-shot",
+      "tags": [
+        "json",
+        "structured-output",
+        "schema",
+        "extraction"
+      ],
+      "useCases": [
+        "get json back",
+        "extract data into json",
+        "structured output"
+      ],
+      "category": "coding",
       "level": "intermediate",
       "prompt": "Return only a JSON object that validates against this JSON Schema. Do not include prose or code fences. If a value is unknown, use null rather than guessing.\n\nSchema:\n{\n  \"type\": \"object\",\n  \"required\": [\"status\", \"data\"],\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"status\": { \"type\": \"string\", \"enum\": [\"ok\", \"error\"] },\n    \"data\": { \"type\": \"object\" }\n  }\n}\n\nInput:\nPASTE INPUT HERE"
     },
     {
       "id": "prompt:claude-md-starter",
       "type": "prompt",
-      "name": "Write my CLAUDE.md",
-      "summary": "Has Claude interview you, then write a CLAUDE.md so it understands your project every session.",
-      "tags": ["claude-code", "claude-md", "setup", "onboarding"],
-      "useCases": ["set up claude code for my project", "write a claude.md", "make claude remember my project rules"],
-      "category": "system",
+      "name": "Write my CLAUDE.md / AGENTS.md",
+      "summary": "Has your agent interview you, then write a project instructions file so it understands your project every session.",
+      "tags": [
+        "claude-code",
+        "claude-md",
+        "setup",
+        "onboarding"
+      ],
+      "useCases": [
+        "set up claude code for my project",
+        "write a claude.md",
+        "make claude remember my project rules",
+        "write an agents.md",
+        "set up codex for my project"
+      ],
+      "category": "coding",
       "level": "beginner",
-      "prompt": "Look around this repository, then ask me up to five short questions about anything you could not infer (how to run tests, code style, things to avoid). After I answer, write a concise CLAUDE.md with: how to build/test/run, project layout, conventions, and gotchas. Keep it under 60 lines."
+      "prompt": "Look around this repository, then ask me up to five short questions about anything you could not infer (how to run tests, code style, things to avoid). After I answer, write a concise instructions file (CLAUDE.md for Claude Code, AGENTS.md for Codex and most other agents, GEMINI.md for Gemini CLI) with: how to build/test/run, project layout, conventions, and gotchas. Keep it under 60 lines."
     },
     {
       "id": "prompt:bug-hunter",
       "type": "prompt",
       "name": "Reproduce-First Bug Fix",
-      "summary": "Makes Claude reproduce a bug with a failing test before it touches the fix.",
-      "tags": ["debugging", "testing", "tdd", "bugs"],
-      "useCases": ["fix a bug properly", "my app is broken", "write a regression test"],
-      "category": "system",
+      "summary": "Makes your AI reproduce a bug with a failing test before it touches the fix.",
+      "tags": [
+        "debugging",
+        "testing",
+        "tdd",
+        "bugs"
+      ],
+      "useCases": [
+        "fix a bug properly",
+        "my app is broken",
+        "write a regression test"
+      ],
+      "category": "coding",
       "level": "intermediate",
       "prompt": "Before changing any code: 1) restate the bug in one sentence, 2) write a failing test that reproduces it and show me the failure, 3) explain the root cause. Only then make the smallest fix that turns the test green, and run the full test suite."
     },
@@ -420,11 +942,1074 @@
       "type": "prompt",
       "name": "Plain-English PR Description",
       "summary": "Turns a diff into a pull request description a non-engineer can follow.",
-      "tags": ["git", "pull-requests", "writing", "communication"],
-      "useCases": ["write a pr description", "summarize my changes", "explain my changes to my manager"],
-      "category": "few-shot",
+      "tags": [
+        "git",
+        "pull-requests",
+        "writing",
+        "communication"
+      ],
+      "useCases": [
+        "write a pr description",
+        "summarize my changes",
+        "explain my changes to my manager"
+      ],
+      "category": "coding",
       "level": "beginner",
       "prompt": "Write a pull request description for the current diff. Sections: What changed (2-3 bullets in plain English), Why, How to test (numbered steps), Risks. Avoid jargon; if a technical term is needed, define it in parentheses."
+    },
+    {
+      "id": "prompt:study-tutor",
+      "type": "prompt",
+      "name": "Patient Study Tutor",
+      "summary": "Turns your AI into a tutor that quizzes you and explains what you got wrong.",
+      "tags": [
+        "learning",
+        "study",
+        "explain",
+        "quiz",
+        "exams"
+      ],
+      "useCases": [
+        "help me study for exams",
+        "quiz me",
+        "flashcards",
+        "learn a topic"
+      ],
+      "category": "learning",
+      "level": "beginner",
+      "prompt": "You are my patient study tutor for [SUBJECT]. First ask me what I already know. Then teach one idea at a time in plain language, with one example each. After every idea, ask me one quiz question and wait for my answer. If I'm wrong, explain why kindly and try a simpler question. Every five questions, summarize what I've mastered and what to review."
+    },
+    {
+      "id": "prompt:email-writer",
+      "type": "prompt",
+      "name": "Clear Email Writer",
+      "summary": "Drafts a short, polite email from a few rough notes, in the tone you pick.",
+      "tags": [
+        "email",
+        "writing",
+        "communication"
+      ],
+      "useCases": [
+        "write emails faster",
+        "reply to an email",
+        "polite email",
+        "follow-up email"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Write an email from these rough notes: [NOTES]. Recipient: [WHO]. Tone: [friendly / formal / firm]. Keep it under 150 words, put the main ask in the first two sentences, and end with one clear next step. Give me a subject line and two alternative openings."
+    },
+    {
+      "id": "prompt:meeting-notes",
+      "type": "prompt",
+      "name": "Meeting Notes to Action Items",
+      "summary": "Turns messy meeting notes or a transcript into decisions, owners and deadlines.",
+      "tags": [
+        "notes",
+        "meetings",
+        "summarize",
+        "productivity"
+      ],
+      "useCases": [
+        "summarize meeting notes",
+        "action items from a meeting",
+        "summarize a transcript"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Here are notes or a transcript from a meeting: [PASTE]. Give me: 1) a three-sentence summary, 2) decisions made, 3) action items as a table (task, owner, deadline; write 'unassigned' if unclear), 4) open questions. Don't invent anything that isn't in the notes."
+    },
+    {
+      "id": "prompt:trip-planner",
+      "type": "prompt",
+      "name": "Trip Planner",
+      "summary": "Builds a day-by-day travel itinerary around your budget, pace and interests.",
+      "tags": [
+        "travel",
+        "trip",
+        "planning"
+      ],
+      "useCases": [
+        "plan a trip",
+        "travel itinerary",
+        "vacation ideas",
+        "weekend getaway"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "Plan a [NUMBER]-day trip to [PLACE] for [WHO]. Budget: [BUDGET]. We like [INTERESTS] and prefer a [relaxed / packed] pace. Give a day-by-day plan with morning, afternoon and evening, rough costs, travel time between stops, and one rainy-day backup per day. Ask me up to three questions first if anything important is missing."
+    },
+    {
+      "id": "prompt:essay-feedback",
+      "type": "prompt",
+      "name": "Essay Coach",
+      "summary": "Gives honest, specific feedback on your writing without rewriting it for you.",
+      "tags": [
+        "writing",
+        "essay",
+        "feedback",
+        "learning"
+      ],
+      "useCases": [
+        "feedback on my essay",
+        "improve my writing",
+        "prompt for writing an essay",
+        "proofread"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Act as a writing coach. Here is my draft: [PASTE]. Don't rewrite it. Instead: 1) tell me the main argument in one sentence as you understood it, 2) list the three biggest problems (structure, clarity, evidence) with the exact sentence each applies to, 3) point out what works well, 4) suggest one concrete exercise to fix the weakest part."
+    },
+    {
+      "id": "prompt:eli5",
+      "type": "prompt",
+      "name": "Explain Like I'm Five",
+      "summary": "Explains any topic with everyday comparisons, then checks you understood.",
+      "tags": [
+        "explain",
+        "learning",
+        "beginner"
+      ],
+      "useCases": [
+        "explain like im five",
+        "explain simply",
+        "i don't understand",
+        "what does this mean"
+      ],
+      "category": "learning",
+      "level": "beginner",
+      "prompt": "Explain [TOPIC] as if I'm completely new to it. Use one everyday comparison, avoid jargon (or define it the first time), and keep it under 200 words. Then ask me one question to check I understood, and offer to go one level deeper."
+    },
+    {
+      "id": "prompt:decision-helper",
+      "type": "prompt",
+      "name": "Decision Helper",
+      "summary": "Lays out your options, trade-offs and a recommendation for a tough choice.",
+      "tags": [
+        "planning",
+        "decisions",
+        "reasoning"
+      ],
+      "useCases": [
+        "help me decide",
+        "pros and cons",
+        "which option should i pick",
+        "make a decision"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "I need to decide: [DECISION]. Options: [OPTIONS]. What matters most to me: [PRIORITIES]. Ask me clarifying questions if needed, then give a comparison table (option, pros, cons, risks, cost), say which option you'd pick and why, and what would change your mind."
+    },
+    {
+      "id": "prompt:business-plan",
+      "type": "prompt",
+      "name": "One-Page Business Plan",
+      "summary": "Turns a business idea into a one-page plan with customers, pricing and first steps.",
+      "tags": [
+        "business",
+        "startup",
+        "planning",
+        "writing"
+      ],
+      "useCases": [
+        "write a business plan",
+        "startup idea",
+        "validate my idea",
+        "pricing my product"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Help me turn this idea into a one-page business plan: [IDEA]. Cover: the problem, who has it most, the solution, how it makes money and a first price, competitors and why we're different, the riskiest assumption, and three cheap experiments to test it in the next two weeks. Be blunt about weak spots."
+    },
+    {
+      "id": "prompt:social-posts",
+      "type": "prompt",
+      "name": "Social Post Writer",
+      "summary": "Writes platform-ready posts for LinkedIn, X or Instagram from one idea.",
+      "tags": [
+        "social",
+        "marketing",
+        "writing",
+        "content"
+      ],
+      "useCases": [
+        "social media posts",
+        "linkedin post",
+        "tweet ideas",
+        "instagram caption"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Turn this into social posts: [IDEA OR LINK SUMMARY]. Write one LinkedIn post (under 150 words, hook in the first line), three X posts (under 280 characters each, different angles) and one Instagram caption with up to five relevant hashtags. Match this voice: [VOICE]. No emojis unless I ask."
+    },
+    {
+      "id": "prompt:cover-letter",
+      "type": "prompt",
+      "name": "Job Application Helper",
+      "summary": "Tailors your CV and cover letter to a specific job posting.",
+      "tags": [
+        "career",
+        "writing",
+        "jobs"
+      ],
+      "useCases": [
+        "write a cover letter",
+        "tailor my resume",
+        "job application",
+        "interview prep"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Here is a job posting: [POSTING]. Here is my CV: [CV]. 1) List the five things this employer cares about most. 2) Show where my CV proves each one, and where it's weak. 3) Write a cover letter under 250 words that leads with my strongest match. 4) Give me five likely interview questions with notes on how I'd answer from my experience."
+    },
+    {
+      "id": "prompt:data-analyst",
+      "type": "prompt",
+      "name": "Spreadsheet Analyst",
+      "summary": "Finds trends and answers questions about data you paste or upload.",
+      "tags": [
+        "data",
+        "spreadsheet",
+        "csv",
+        "analysis",
+        "charts"
+      ],
+      "useCases": [
+        "analyze my spreadsheet",
+        "find trends in data",
+        "make charts from data",
+        "analyze a csv file"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Here is my data (pasted or attached): [DATA]. First describe what each column seems to mean and flag anything odd (blanks, duplicates, outliers). Then answer: [QUESTION]. Show your working as a small table, suggest the one chart that best shows the answer, and list two follow-up questions worth asking."
+    },
+    {
+      "id": "prompt:summarize-article",
+      "type": "prompt",
+      "name": "Summarize Anything",
+      "summary": "Summarizes an article, video transcript or document at the length you want.",
+      "tags": [
+        "summarize",
+        "reading",
+        "research",
+        "youtube"
+      ],
+      "useCases": [
+        "summarize an article",
+        "summarize youtube videos",
+        "tl;dr",
+        "summarize a document"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Summarize this: [PASTE TEXT OR TRANSCRIPT]. Give me: a one-sentence TL;DR, five key points as bullets, any numbers or claims worth double-checking, and what the author wants me to do or believe. Keep the whole thing under 200 words."
+    },
+    {
+      "id": "prompt:prompt-improver",
+      "type": "prompt",
+      "name": "Prompt Improver",
+      "summary": "Rewrites a rough request into a clear prompt any AI will follow better.",
+      "tags": [
+        "prompts",
+        "prompt-engineering",
+        "writing"
+      ],
+      "useCases": [
+        "write better prompts",
+        "improve my prompt",
+        "prompt engineering",
+        "how to ask ai"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Improve this prompt so an AI gives a better answer: [MY PROMPT]. Ask me up to three questions about anything missing (goal, audience, format, constraints). Then give the improved prompt, and explain in three bullets what you changed and why."
+    },
+    {
+      "id": "prompt:image-prompt",
+      "type": "prompt",
+      "name": "Image Prompt Writer",
+      "summary": "Writes detailed prompts for AI image tools (logos, illustrations, photos).",
+      "tags": [
+        "image",
+        "art",
+        "design",
+        "logo"
+      ],
+      "useCases": [
+        "make a logo",
+        "generate images",
+        "image prompt",
+        "illustration ideas"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "I want an image of: [IDEA]. Use: [logo / illustration / photo / icon]. Write three different prompts for an AI image generator, each with subject, style, composition, lighting, colors and what to avoid. For a logo, keep it simple, flat and readable at small sizes."
+    },
+    {
+      "id": "mcp:firebase",
+      "type": "mcp",
+      "name": "Firebase MCP",
+      "summary": "Lets your AI manage Firebase projects: Firestore data, Auth users, rules, hosting and more.",
+      "description": "Firebase's official MCP server, shipped in the Firebase CLI. Works with Firestore, Authentication, Storage, Remote Config, security rules, Data Connect and Crashlytics.",
+      "tags": [
+        "firebase",
+        "database",
+        "backend",
+        "google",
+        "auth",
+        "hosting"
+      ],
+      "useCases": [
+        "firebase",
+        "manage my firestore data",
+        "set up firebase auth",
+        "deploy to firebase"
+      ],
+      "level": "intermediate",
+      "requires": [
+        "Node.js 18+",
+        "Firebase CLI login (npx firebase-tools login)"
+      ],
+      "install": {
+        "command": "claude mcp add firebase -- npx -y firebase-tools@latest mcp",
+        "steps": [
+          "Run npx firebase-tools login once",
+          "Run the command from your project folder"
+        ]
+      },
+      "repo": "firebase/firebase-tools",
+      "author": "Firebase",
+      "official": true
+    },
+    {
+      "id": "mcp:mongodb",
+      "type": "mcp",
+      "name": "MongoDB MCP",
+      "summary": "Lets your AI explore and query your MongoDB or Atlas databases.",
+      "description": "MongoDB's official MCP server: list databases and collections, run find and aggregate queries, inspect schemas and indexes, and manage Atlas clusters.",
+      "tags": [
+        "mongodb",
+        "database",
+        "nosql",
+        "atlas",
+        "backend"
+      ],
+      "useCases": [
+        "mongodb",
+        "query my mongo database",
+        "explore a collection",
+        "manage atlas"
+      ],
+      "level": "intermediate",
+      "requires": [
+        "MongoDB connection string",
+        "Node.js 20+"
+      ],
+      "install": {
+        "command": "claude mcp add mongodb -e MDB_MCP_CONNECTION_STRING=YOUR_CONNECTION_STRING -- npx -y mongodb-mcp-server@latest --readOnly",
+        "steps": [
+          "Replace YOUR_CONNECTION_STRING",
+          "Keep --readOnly until you trust it"
+        ]
+      },
+      "repo": "mongodb-js/mongodb-mcp-server",
+      "author": "MongoDB",
+      "official": true
+    },
+    {
+      "id": "prompt:proofread",
+      "type": "prompt",
+      "name": "Proofread, Keep My Voice",
+      "summary": "Fixes grammar, spelling and clunky sentences without making your writing sound like an AI.",
+      "tags": [
+        "writing",
+        "editing",
+        "proofread",
+        "grammar"
+      ],
+      "useCases": [
+        "proofread my text",
+        "fix my grammar",
+        "check spelling",
+        "polish this paragraph"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Proofread the text below. Fix spelling, grammar, punctuation and sentences that are hard to follow, but keep my wording, tone and length wherever they already work. Don't add new ideas or buzzwords. Return the corrected text, then a short list of the changes that weren't just typos, so I can learn from them.\n\nText:\n[PASTE]"
+    },
+    {
+      "id": "prompt:rewrite-tone",
+      "type": "prompt",
+      "name": "Rewrite in a Different Tone",
+      "summary": "Rewrites a message shorter, friendlier, firmer or more formal, with three versions to pick from.",
+      "tags": [
+        "writing",
+        "editing",
+        "tone",
+        "rewrite"
+      ],
+      "useCases": [
+        "make this sound more professional",
+        "make it shorter",
+        "make this friendlier",
+        "rewrite this message"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Rewrite the text below to be [shorter / friendlier / more formal / firmer / more confident] for [WHO WILL READ IT]. Keep every fact and request in it. Give me three versions that differ in how far they go, from a light touch to a full rewrite, and say in one line what each one changes.\n\nText:\n[PASTE]"
+    },
+    {
+      "id": "prompt:translate-naturally",
+      "type": "prompt",
+      "name": "Natural Translator",
+      "summary": "Translates so it reads like a native speaker wrote it, and flags phrases that don't carry over.",
+      "tags": [
+        "translation",
+        "language",
+        "writing",
+        "localization"
+      ],
+      "useCases": [
+        "translate text",
+        "translate an email",
+        "translate into spanish",
+        "localize my message"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Translate the text below from [SOURCE LANGUAGE] into [TARGET LANGUAGE] for [AUDIENCE, e.g. a client in Mexico]. Make it sound like a native speaker wrote it, not a word-for-word copy. Keep names, numbers and formatting. After the translation, list any idioms, jokes or cultural references you changed and why, and anything where the right choice depends on context I haven't given you.\n\nText:\n[PASTE]"
+    },
+    {
+      "id": "prompt:reply-to-email",
+      "type": "prompt",
+      "name": "Reply to This Email",
+      "summary": "Reads an email you received and drafts a reply that answers every question in it.",
+      "tags": [
+        "email",
+        "writing",
+        "reply",
+        "communication"
+      ],
+      "useCases": [
+        "reply to an email",
+        "answer this email",
+        "respond to my boss",
+        "write a reply"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Here is an email I received:\n[PASTE EMAIL]\n\nWhat I want to say back: [YOUR POINTS, OR 'decline politely' / 'say yes but ask for a later date']. Draft a reply that answers every question they asked (list any you can't answer from my notes), matches their level of formality, and stays under 120 words unless more is truly needed."
+    },
+    {
+      "id": "prompt:inbox-triage",
+      "type": "prompt",
+      "name": "Inbox Triage",
+      "summary": "Sorts a pile of pasted emails into reply now, later, delegate or ignore, with draft replies for the urgent ones.",
+      "tags": [
+        "email",
+        "productivity",
+        "inbox",
+        "triage"
+      ],
+      "useCases": [
+        "sort my emails",
+        "too many emails",
+        "clear my inbox",
+        "which emails need a reply"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Below are several emails, separated by ---. For each one, give: sender, a one-line summary, a category (reply today / reply this week / delegate / just read / ignore) and why. Then draft short replies for everything marked 'reply today'. Flag anything that looks like a deadline, a payment, or phishing.\n\n[PASTE EMAILS]"
+    },
+    {
+      "id": "prompt:difficult-message",
+      "type": "prompt",
+      "name": "Say the Hard Thing",
+      "summary": "Helps you word a tough message: saying no, an apology, a complaint, or setting a boundary.",
+      "tags": [
+        "writing",
+        "communication",
+        "relationships",
+        "conflict"
+      ],
+      "useCases": [
+        "how do i say no",
+        "write an apology",
+        "complain politely",
+        "decline an invitation",
+        "set a boundary"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Help me write a message to [WHO] about [SITUATION]. I want to [say no / apologize / complain / ask for something / set a boundary] without being rude or over-apologizing. Our relationship: [e.g. coworker, landlord, friend]. Give me a short version and a warmer version, and point out any sentence that could be read as passive-aggressive."
+    },
+    {
+      "id": "prompt:support-reply",
+      "type": "prompt",
+      "name": "Customer Support Reply",
+      "summary": "Writes a calm, helpful reply to a customer message, following your policy.",
+      "tags": [
+        "customer-support",
+        "email",
+        "business",
+        "writing"
+      ],
+      "useCases": [
+        "reply to a customer",
+        "customer complaint",
+        "refund request reply",
+        "support response"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "You're replying on behalf of [BUSINESS]. Our policy on this: [POLICY, e.g. refunds within 30 days]. Customer message:\n[PASTE]\n\nWrite a reply that acknowledges the problem in their words, says clearly what we can and can't do and why, gives the next step with a timeframe, and stays friendly even if they're angry. No corporate filler. If their request falls outside the policy, offer the closest thing we can do."
+    },
+    {
+      "id": "prompt:product-description",
+      "type": "prompt",
+      "name": "Product Description Writer",
+      "summary": "Turns product details into a short, honest description for a store listing.",
+      "tags": [
+        "ecommerce",
+        "marketing",
+        "writing",
+        "copywriting"
+      ],
+      "useCases": [
+        "product description",
+        "shopify listing",
+        "etsy listing",
+        "amazon listing"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Write a product listing for: [PRODUCT]. Details: [MATERIALS, SIZE, FEATURES, PRICE]. Who buys it: [CUSTOMER]. Give a title under 70 characters, a two-sentence description that leads with the main benefit, five bullet points (benefit first, then the feature that delivers it), and ten search keywords. Don't claim anything that isn't in the details."
+    },
+    {
+      "id": "prompt:repurpose-content",
+      "type": "prompt",
+      "name": "Repurpose One Piece of Content",
+      "summary": "Turns one article, talk or video transcript into a newsletter, posts and a short summary.",
+      "tags": [
+        "content",
+        "marketing",
+        "newsletter",
+        "social",
+        "writing"
+      ],
+      "useCases": [
+        "repurpose my blog post",
+        "turn this into a newsletter",
+        "content from a video",
+        "reuse content"
+      ],
+      "category": "writing",
+      "level": "beginner",
+      "prompt": "Here is something I made: [PASTE ARTICLE OR TRANSCRIPT]. Turn it into: 1) a newsletter section (150 words, one clear takeaway, one link placeholder), 2) three social posts with different hooks, 3) a 50-word summary for my website. Keep my voice and examples; don't invent stats."
+    },
+    {
+      "id": "prompt:weekly-update",
+      "type": "prompt",
+      "name": "Weekly Status Update",
+      "summary": "Turns rough bullet notes into a clear weekly update for your team or manager.",
+      "tags": [
+        "work",
+        "reports",
+        "status-update",
+        "writing"
+      ],
+      "useCases": [
+        "weekly status update",
+        "weekly report",
+        "update my manager",
+        "progress report"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Turn my notes into a weekly update for [AUDIENCE]. Notes: [PASTE]. Format: Done this week, Next week, Blockers or help needed, and one line on the most important thing. Use plain sentences, put numbers and dates where I gave them, and keep it under 200 words. Ask me if a blocker is missing an owner."
+    },
+    {
+      "id": "prompt:meeting-agenda",
+      "type": "prompt",
+      "name": "Meeting Agenda",
+      "summary": "Builds a timed agenda with a goal for each item, so the meeting ends with decisions.",
+      "tags": [
+        "meetings",
+        "planning",
+        "work"
+      ],
+      "useCases": [
+        "meeting agenda",
+        "plan a meeting",
+        "run a better meeting",
+        "kickoff meeting"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Make an agenda for a [LENGTH]-minute meeting about [TOPIC] with [WHO]. What we need to leave with: [DECISIONS OR OUTCOMES]. Give each item a time box, an owner and whether it's to inform, discuss or decide. Add three questions to send people beforehand, and suggest anything that could be an email instead."
+    },
+    {
+      "id": "prompt:presentation-outline",
+      "type": "prompt",
+      "name": "Presentation Outline",
+      "summary": "Plans a talk or slide deck: the story, one message per slide, and speaker notes.",
+      "tags": [
+        "slides",
+        "presentation",
+        "pptx",
+        "work"
+      ],
+      "useCases": [
+        "outline a presentation",
+        "plan my slides",
+        "pitch deck outline",
+        "talk structure"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "I'm presenting [TOPIC] to [AUDIENCE] for [MINUTES] minutes. I want them to [DECISION OR ACTION]. Outline the deck: one headline sentence per slide (the point, not the topic), what goes on each slide, and two lines of speaker notes. Keep it to [NUMBER] slides, put the main ask early, and end with the one thing they should remember."
+    },
+    {
+      "id": "prompt:checklist-sop",
+      "type": "prompt",
+      "name": "Turn a Process into a Checklist",
+      "summary": "Writes a step-by-step checklist or SOP from how you describe doing a task.",
+      "tags": [
+        "process",
+        "checklist",
+        "documentation",
+        "work",
+        "operations"
+      ],
+      "useCases": [
+        "write an sop",
+        "make a checklist",
+        "document a process",
+        "onboarding steps"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Here's how I do [TASK], in my own words: [DESCRIBE]. Turn it into a checklist someone new could follow without asking me: numbered steps, what 'done' looks like for each, the tools or logins needed, common mistakes, and what to do if a step fails. Ask me about any step that's vague before you finish."
+    },
+    {
+      "id": "prompt:feedback-writer",
+      "type": "prompt",
+      "name": "Constructive Feedback",
+      "summary": "Helps you write specific, kind feedback for a review, a colleague or a report.",
+      "tags": [
+        "feedback",
+        "management",
+        "performance-review",
+        "work"
+      ],
+      "useCases": [
+        "write performance review",
+        "give feedback to a colleague",
+        "peer review",
+        "self review"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Help me write feedback for [PERSON / ROLE] covering [PERIOD]. What went well: [NOTES]. What should change: [NOTES]. For each point, give the specific behavior, its impact and a concrete suggestion. Keep it honest but kind, avoid vague praise like 'great job', and end with one clear goal for next time."
+    },
+    {
+      "id": "prompt:spreadsheet-formula",
+      "type": "prompt",
+      "name": "Spreadsheet Formula Helper",
+      "summary": "Writes the Excel or Google Sheets formula for what you describe, and explains it.",
+      "tags": [
+        "spreadsheet",
+        "excel",
+        "xlsx",
+        "formulas",
+        "data"
+      ],
+      "useCases": [
+        "excel formula",
+        "google sheets formula",
+        "vlookup",
+        "spreadsheet help"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "I'm using [Excel / Google Sheets]. My columns: [e.g. A = date, B = customer, C = amount]. I want: [WHAT YOU WANT, e.g. total per customer for March]. Give me the formula, where to put it, and a plain-English explanation of each part. If there's a simpler way (a pivot table or filter), tell me that too."
+    },
+    {
+      "id": "prompt:sql-writer",
+      "type": "prompt",
+      "name": "SQL Query Writer",
+      "summary": "Writes a SQL query from a plain-English question and your table layout, and explains it.",
+      "tags": [
+        "sql",
+        "database",
+        "data",
+        "queries"
+      ],
+      "useCases": [
+        "write sql for me",
+        "sql query",
+        "query my database",
+        "sql help"
+      ],
+      "category": "work",
+      "level": "intermediate",
+      "prompt": "My database is [Postgres / MySQL / SQLite / BigQuery]. Tables and columns: [PASTE SCHEMA OR DESCRIBE]. Question: [WHAT YOU WANT TO KNOW]. Write the query, explain each part in a sentence, and point out any assumption you made (e.g. how you handled duplicates or missing values). Prefer read-only queries; warn me before anything that changes data."
+    },
+    {
+      "id": "prompt:research-brief",
+      "type": "prompt",
+      "name": "Research Brief",
+      "summary": "Gives a balanced overview of a topic, separates facts from opinions, and says what's uncertain.",
+      "tags": [
+        "research",
+        "summarize",
+        "learning",
+        "analysis"
+      ],
+      "useCases": [
+        "research a topic",
+        "background research",
+        "what do we know about",
+        "market research"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Give me a research brief on [TOPIC] for [PURPOSE]. Cover: the key facts, the main points of disagreement and who holds each view, recent developments (say the date your information goes up to), and what's still unknown. Mark anything you're not sure about. If you can browse, cite sources with links; if you can't, say so and suggest what to search for."
+    },
+    {
+      "id": "prompt:explain-document",
+      "type": "prompt",
+      "name": "Explain This Document",
+      "summary": "Explains a contract, policy, letter or form in plain English and lists what you need to do.",
+      "tags": [
+        "documents",
+        "explain",
+        "contracts",
+        "legal",
+        "summarize"
+      ],
+      "useCases": [
+        "explain this contract",
+        "what does this letter mean",
+        "read the fine print",
+        "explain terms and conditions"
+      ],
+      "category": "work",
+      "level": "beginner",
+      "prompt": "Explain the document below in plain English. Tell me: what it is, what I'm agreeing to or being asked to do, deadlines and costs, anything unusual or one-sided, and questions I should ask before signing or replying. This isn't legal or financial advice; tell me if something is serious enough that I should ask a professional.\n\n[PASTE DOCUMENT]"
+    },
+    {
+      "id": "prompt:flashcards",
+      "type": "prompt",
+      "name": "Flashcards from My Notes",
+      "summary": "Turns notes or a chapter into question-and-answer flashcards you can import into Anki or Quizlet.",
+      "tags": [
+        "study",
+        "flashcards",
+        "learning",
+        "exams"
+      ],
+      "useCases": [
+        "make flashcards",
+        "anki cards",
+        "quizlet from notes",
+        "study cards"
+      ],
+      "category": "learning",
+      "level": "beginner",
+      "prompt": "Make flashcards from the material below. One fact or idea per card, questions that test understanding rather than copying a sentence, and short answers. Include a few cards that ask 'why' or 'what's the difference between'. Output as two columns separated by a tab (question, answer) so I can import them into Anki or Quizlet.\n\n[PASTE NOTES]"
+    },
+    {
+      "id": "prompt:language-partner",
+      "type": "prompt",
+      "name": "Language Practice Partner",
+      "summary": "Chats with you in the language you're learning and gently corrects your mistakes.",
+      "tags": [
+        "language",
+        "learning",
+        "practice",
+        "translation"
+      ],
+      "useCases": [
+        "practice spanish",
+        "learn a language",
+        "conversation practice",
+        "language tutor"
+      ],
+      "category": "learning",
+      "level": "beginner",
+      "prompt": "Be my conversation partner in [LANGUAGE]. My level: [beginner / intermediate / advanced]. Topic: [e.g. ordering food, a job interview]. Write short replies at my level and ask me questions to keep the conversation going. After each of my messages, show my mistakes corrected in brackets with a one-line explanation in English, then continue the conversation."
+    },
+    {
+      "id": "prompt:how-to-guide",
+      "type": "prompt",
+      "name": "Step-by-Step How-To",
+      "summary": "Explains how to do any practical task in numbered steps, with what you'll need and what can go wrong.",
+      "tags": [
+        "how-to",
+        "guide",
+        "learning",
+        "explain"
+      ],
+      "useCases": [
+        "how do i",
+        "step by step instructions",
+        "teach me how to",
+        "walk me through"
+      ],
+      "category": "learning",
+      "level": "beginner",
+      "prompt": "Walk me through how to [TASK]. My situation: [e.g. tools I have, device, experience level]. Start with what I need before I begin, then numbered steps with one action each, how to tell each step worked, and the common mistakes. Stop after [5] steps and ask if I'm ready for the rest if it's long. Tell me when this is a job for a professional."
+    },
+    {
+      "id": "prompt:meal-plan",
+      "type": "prompt",
+      "name": "Weekly Meal Plan and Grocery List",
+      "summary": "Plans a week of meals around your diet, budget and time, with one combined shopping list.",
+      "tags": [
+        "cooking",
+        "recipes",
+        "meal-plan",
+        "groceries",
+        "health"
+      ],
+      "useCases": [
+        "meal plan",
+        "what should i cook this week",
+        "grocery list",
+        "meal prep"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "Plan [NUMBER] dinners [and lunches] for this week for [WHO, e.g. 2 adults, 1 child]. Diet or allergies: [DETAILS]. Budget: [AMOUNT]. Time on weeknights: [MINUTES]. Reuse ingredients across meals to cut waste, include one batch-cook day, and end with a grocery list grouped by store aisle with quantities. Note which items I probably already have."
+    },
+    {
+      "id": "prompt:fridge-recipe",
+      "type": "prompt",
+      "name": "Cook with What I Have",
+      "summary": "Suggests recipes from the ingredients already in your fridge and cupboard.",
+      "tags": [
+        "cooking",
+        "recipes",
+        "food"
+      ],
+      "useCases": [
+        "what can i make with",
+        "recipe from leftovers",
+        "cook with what i have",
+        "dinner ideas"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "I have: [INGREDIENTS]. Equipment: [e.g. oven, air fryer]. Time: [MINUTES]. Suggest three dishes I can make mostly from these, saying which extra ingredients each needs. Then give the full recipe for the one with the fewest extras, with steps and timings."
+    },
+    {
+      "id": "prompt:weekly-planner",
+      "type": "prompt",
+      "name": "Plan My Week",
+      "summary": "Turns a messy to-do list into a realistic weekly schedule, with priorities and breaks.",
+      "tags": [
+        "planning",
+        "productivity",
+        "schedule",
+        "to-do"
+      ],
+      "useCases": [
+        "plan my week",
+        "organize my to do list",
+        "too much to do",
+        "make a schedule"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "Here's everything on my plate: [BRAIN DUMP]. Fixed commitments: [MEETINGS, CLASSES, PICKUPS]. I'm most focused [mornings / afternoons / evenings]. Sort the tasks into must / should / could, estimate how long each takes, and lay them out across [DAYS] without filling every hour. Tell me what to drop or delay if it doesn't fit."
+    },
+    {
+      "id": "prompt:workout-plan",
+      "type": "prompt",
+      "name": "Beginner Workout Plan",
+      "summary": "Builds a simple weekly workout plan around your goal, equipment and time.",
+      "tags": [
+        "fitness",
+        "health",
+        "exercise",
+        "planning"
+      ],
+      "useCases": [
+        "workout plan",
+        "start exercising",
+        "gym routine",
+        "home workout"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "Make a [NUMBER]-week workout plan. Goal: [e.g. get stronger, run 5k]. Days per week: [NUMBER], [MINUTES] each. Equipment: [e.g. none, dumbbells, gym]. Limitations: [INJURIES OR NONE]. Give each session with exercises, sets, reps or time, and an easier option for each. Explain how to progress each week. Remind me to check with a doctor if I have health conditions."
+    },
+    {
+      "id": "prompt:compare-options",
+      "type": "prompt",
+      "name": "Compare Before I Buy",
+      "summary": "Compares products or services on what matters to you and recommends one.",
+      "tags": [
+        "shopping",
+        "compare",
+        "decisions",
+        "products"
+      ],
+      "useCases": [
+        "which should i buy",
+        "compare products",
+        "best laptop for me",
+        "is it worth it"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "I'm choosing between [OPTIONS] (or help me find options for [NEED]). Budget: [AMOUNT]. What matters most: [PRIORITIES]. Compare them in a table on those points, plus price, known problems and running costs. Recommend one for my situation and say what would make another option the better pick. Say when your information may be out of date."
+    },
+    {
+      "id": "prompt:monthly-budget",
+      "type": "prompt",
+      "name": "Sort My Spending",
+      "summary": "Groups a list of expenses into categories and shows where the money goes. Not financial advice.",
+      "tags": [
+        "budget",
+        "money",
+        "expenses",
+        "spreadsheet"
+      ],
+      "useCases": [
+        "track my expenses",
+        "where does my money go",
+        "monthly budget",
+        "categorize spending"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "Here are my expenses for [MONTH] (date, description, amount): [PASTE]. Group them into categories, total each one, and show the share of my spending. Point out subscriptions, repeat charges and anything that looks unusual. Then suggest three places to cut that wouldn't change my life much. This is for organizing, not financial advice."
+    },
+    {
+      "id": "prompt:gift-ideas",
+      "type": "prompt",
+      "name": "Gift and Idea Generator",
+      "summary": "Brainstorms gift, name or activity ideas that fit the person, budget and occasion.",
+      "tags": [
+        "ideas",
+        "brainstorm",
+        "gifts",
+        "shopping"
+      ],
+      "useCases": [
+        "gift ideas",
+        "birthday present",
+        "brainstorm ideas",
+        "name ideas"
+      ],
+      "category": "life",
+      "level": "beginner",
+      "prompt": "Brainstorm [gift / party / name / date] ideas for [WHO OR WHAT]. About them: [INTERESTS, AGE, PERSONALITY]. Budget: [AMOUNT]. Occasion: [OCCASION]. Give 15 ideas in three groups (safe, thoughtful, surprising), one line each on why it fits. Avoid generic picks like gift cards unless I ask."
+    },
+    {
+      "id": "prompt:commit-message",
+      "type": "prompt",
+      "name": "Commit Message from a Diff",
+      "summary": "Writes a clear commit message from your staged changes.",
+      "tags": [
+        "git",
+        "commits",
+        "coding"
+      ],
+      "useCases": [
+        "write commit message",
+        "git commit messages",
+        "describe my changes"
+      ],
+      "category": "coding",
+      "level": "intermediate",
+      "prompt": "Write a commit message for this diff. Subject line under 72 characters in the imperative mood (\"Add\", \"Fix\"), saying what changed and why. Then a short body only if it adds something: the reason, anything surprising, and breaking changes. Match this repo's style if I paste recent commits. Don't describe line-by-line edits.\n\n[PASTE git diff --staged]"
+    },
+    {
+      "id": "prompt:unit-tests",
+      "type": "prompt",
+      "name": "Write Tests for This Code",
+      "summary": "Writes unit tests that cover normal cases, edge cases and errors, in your test framework.",
+      "tags": [
+        "testing",
+        "unit-tests",
+        "tdd",
+        "coding"
+      ],
+      "useCases": [
+        "write unit tests",
+        "generate tests",
+        "test coverage",
+        "write tests for me"
+      ],
+      "category": "coding",
+      "level": "intermediate",
+      "prompt": "Write tests for the code below using [FRAMEWORK, e.g. pytest, Jest, node:test]. First list the behaviors worth testing: normal cases, edge cases (empty, zero, very large, unicode), and error cases. Then write the tests, one behavior each, with names that describe the behavior. Don't test private details. If something is hard to test, tell me how to change the code to make it easier.\n\n[PASTE CODE]"
+    },
+    {
+      "id": "prompt:explain-error",
+      "type": "prompt",
+      "name": "Explain This Error",
+      "summary": "Explains an error message or stack trace in plain English and suggests the most likely fix.",
+      "tags": [
+        "errors",
+        "debugging",
+        "coding",
+        "stack-trace"
+      ],
+      "useCases": [
+        "explain this error",
+        "why am i getting this error",
+        "fix this error",
+        "stack trace help"
+      ],
+      "category": "coding",
+      "level": "intermediate",
+      "prompt": "I got this error:\n[PASTE ERROR / STACK TRACE]\n\nWhat I was doing: [COMMAND OR ACTION]. Language and versions: [DETAILS]. Relevant code: [PASTE IF YOU HAVE IT]. Explain in plain English what the error means, the most likely cause, and the fix. If there are several possible causes, rank them and tell me how to check each one."
+    },
+    {
+      "id": "prompt:regex-builder",
+      "type": "prompt",
+      "name": "Regex Builder",
+      "summary": "Writes and explains a regular expression from examples of what should and shouldn't match.",
+      "tags": [
+        "regex",
+        "coding",
+        "text-processing"
+      ],
+      "useCases": [
+        "write a regex",
+        "regular expression",
+        "match this pattern",
+        "validate input"
+      ],
+      "category": "coding",
+      "level": "intermediate",
+      "prompt": "Write a regular expression for [LANGUAGE / TOOL] that matches [DESCRIPTION]. Should match: [EXAMPLES]. Should NOT match: [EXAMPLES]. Give the regex, a piece-by-piece explanation, and a table showing each of my examples and whether it matches. Mention any edge case it gets wrong."
+    },
+    {
+      "id": "prompt:write-docs",
+      "type": "prompt",
+      "name": "Document This Code",
+      "summary": "Writes docstrings, a README section or usage examples for code you paste.",
+      "tags": [
+        "documentation",
+        "docs",
+        "readme",
+        "coding"
+      ],
+      "useCases": [
+        "write documentation",
+        "write a readme",
+        "add docstrings",
+        "document my code"
+      ],
+      "category": "coding",
+      "level": "intermediate",
+      "prompt": "Document the code below. Write [docstrings / a README section / usage examples] in the style of [LANGUAGE CONVENTION, e.g. JSDoc, Google-style Python]. Cover what it does, inputs and outputs, errors it can raise, and one realistic example. Only document behavior you can see in the code, and tell me anything that looks like a bug while you're at it.\n\n[PASTE CODE]"
     }
   ]
 }

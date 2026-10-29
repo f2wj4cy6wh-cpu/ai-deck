@@ -1,9 +1,11 @@
+// Local Node server: serves public/ and the API. The hosted version runs worker/index.js instead.
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadCatalog, catalogStats, TYPES, DATA_DIR } from "./catalog.js";
-import { buildIndex, search, topTags } from "./search.js";
+import { loadCatalog, DATA_DIR } from "./load.js";
+import { buildIndex } from "./search.js";
+import { createApi } from "./api.js";
 import { rerank, aiStatus } from "./ai.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +18,7 @@ let catalog = loadCatalog();
 let index = buildIndex(catalog.items);
 
 // Pick up a fresh `npm run ingest` without restarting.
+let reloadTimer;
 fs.watch(DATA_DIR, (_event, file) => {
   if (file !== "catalog.json") return;
   clearTimeout(reloadTimer);
@@ -29,7 +32,19 @@ fs.watch(DATA_DIR, (_event, file) => {
     }
   }, 300);
 });
-let reloadTimer;
+
+const handleApi = createApi({
+  state: () => ({ catalog, index }),
+  rerank,
+  aiStatus,
+  saveSubmission: async (entry) => {
+    const existing = fs.existsSync(SUBMISSIONS_FILE) ? JSON.parse(fs.readFileSync(SUBMISSIONS_FILE, "utf8")) : [];
+    if (existing.some((s) => s.url === entry.url)) return { duplicate: true };
+    existing.push(entry);
+    fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(existing, null, 2));
+    return { duplicate: false };
+  },
+});
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -40,24 +55,6 @@ const MIME = {
   ".ico": "image/x-icon",
   ".json": "application/json",
 };
-
-function sendJson(res, status, body) {
-  res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-  res.end(JSON.stringify(body));
-}
-
-function publicItem(item) {
-  // Strip nothing sensitive today, but keep a single choke point for what leaves the server.
-  return item;
-}
-
-function parseLevel(value) {
-  return value === "expert" ? "expert" : "beginner";
-}
-
-function parseType(value) {
-  return TYPES.includes(value) ? value : null;
-}
 
 function readBody(req, limit = 16_384) {
   return new Promise((resolve, reject) => {
@@ -72,114 +69,6 @@ function readBody(req, limit = 16_384) {
     req.on("end", () => resolve(body));
     req.on("error", reject);
   });
-}
-
-const routes = {
-  "GET /api/stats": () => ({ ...catalogStats(catalog), ai: aiStatus() }),
-
-  "GET /api/search": (url) => {
-    const q = (url.searchParams.get("q") ?? "").slice(0, 300);
-    const tags = url.searchParams.getAll("tag").filter(Boolean);
-    const limit = Math.min(60, Number(url.searchParams.get("limit")) || 30);
-    const { results, total, query } = search(index, {
-      q,
-      type: parseType(url.searchParams.get("type")),
-      level: parseLevel(url.searchParams.get("level")),
-      tags,
-      limit,
-    });
-    return {
-      total,
-      intent: { tags: query.tags, impliedType: query.impliedType },
-      results: results.map((r) => ({ item: publicItem(r.item), why: r.why, score: Number(r.score.toFixed(3)) })),
-    };
-  },
-
-  // Second phase of a search: the client calls this after rendering local results.
-  "GET /api/rank": async (url) => {
-    const q = (url.searchParams.get("q") ?? "").slice(0, 300);
-    const level = parseLevel(url.searchParams.get("level"));
-    const { results } = search(index, { q, type: parseType(url.searchParams.get("type")), level, limit: 20 });
-    const ranked = await rerank(q, level, results.map((r) => r.item));
-    if (!ranked) return { ai: false, ...aiStatus() };
-    return {
-      ai: true,
-      model: ranked.model,
-      clarify: ranked.clarify,
-      results: ranked.picks.map((p) => ({ item: publicItem(catalog.byId.get(p.id)), why: p.why })),
-    };
-  },
-
-  "GET /api/items": (url) => {
-    const type = parseType(url.searchParams.get("type"));
-    const types = url.searchParams.getAll("types").filter((t) => TYPES.includes(t));
-    const tag = url.searchParams.get("tag");
-    const language = url.searchParams.get("language");
-    const category = url.searchParams.get("category");
-    const ids = url.searchParams.get("ids");
-    const sort = url.searchParams.get("sort") ?? "trust";
-    const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
-    const limit = Math.min(100, Number(url.searchParams.get("limit")) || 40);
-
-    let items = catalog.items;
-    if (ids) {
-      const wanted = ids.split(",").slice(0, 200);
-      items = wanted.map((id) => catalog.byId.get(id)).filter(Boolean);
-    }
-    if (type) items = items.filter((i) => i.type === type);
-    if (types.length) items = items.filter((i) => types.includes(i.type));
-    if (tag) items = items.filter((i) => i.tags.includes(tag.toLowerCase()));
-    if (language) items = items.filter((i) => i.language === language);
-    if (category) items = items.filter((i) => i.category === category);
-
-    const sorters = {
-      trust: (a, b) => b.trust.score - a.trust.score || (b.stars ?? 0) - (a.stars ?? 0),
-      stars: (a, b) => (b.stars ?? -1) - (a.stars ?? -1),
-      updated: (a, b) => Date.parse(b.pushedAt ?? 0) - Date.parse(a.pushedAt ?? 0),
-      name: (a, b) => a.name.localeCompare(b.name),
-    };
-    if (!ids) items = [...items].sort(sorters[sort] ?? sorters.trust);
-
-    const pool = type || types.length ? items : catalog.items;
-    return {
-      total: items.length,
-      items: items.slice(offset, offset + limit).map(publicItem),
-      tags: topTags(pool, 14),
-      languages: [...new Set(pool.map((i) => i.language).filter(Boolean))].sort(),
-    };
-  },
-
-  "POST /api/submit": async (_url, req) => {
-    let payload;
-    try {
-      payload = JSON.parse(await readBody(req));
-    } catch {
-      return [400, { error: "Expected a JSON body" }];
-    }
-    const link = String(payload.url ?? "").trim();
-    if (!/^https:\/\/[\w.-]+\/\S+$/.test(link) || link.length > 400) {
-      return [400, { error: "Enter an https:// link to a repo or manifest" }];
-    }
-    const category = TYPES.includes(payload.category) ? payload.category : "skill";
-    const existing = fs.existsSync(SUBMISSIONS_FILE) ? JSON.parse(fs.readFileSync(SUBMISSIONS_FILE, "utf8")) : [];
-    if (existing.some((s) => s.url === link)) return { ok: true, duplicate: true };
-    existing.push({ url: link, category, note: String(payload.note ?? "").slice(0, 500), submittedAt: new Date().toISOString() });
-    fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(existing, null, 2));
-    return { ok: true };
-  },
-};
-
-async function handleApi(req, res, url) {
-  const route = routes[`${req.method} ${url.pathname}`];
-  if (!route) return sendJson(res, 404, { error: "Not found" });
-  try {
-    const result = await route(url, req);
-    if (Array.isArray(result)) return sendJson(res, result[0], result[1]);
-    return sendJson(res, 200, result);
-  } catch (error) {
-    console.error(`[api] ${req.method} ${url.pathname} failed:`, error);
-    return sendJson(res, 500, { error: "Internal error" });
-  }
 }
 
 function serveStatic(res, url) {
@@ -203,15 +92,17 @@ function serveStatic(res, url) {
   });
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
-  if (url.pathname.startsWith("/api/")) return handleApi(req, res, url);
-  return serveStatic(res, url);
+  if (!url.pathname.startsWith("/api/")) return serveStatic(res, url);
+  const [status, body] = await handleApi(req.method, url, () => readBody(req));
+  res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+  res.end(JSON.stringify(body));
 });
 
 server.listen(PORT, HOST, () => {
   const ai = aiStatus();
   console.log(`AI_DECK running at http://${HOST}:${PORT}`);
   console.log(`[catalog] ${catalog.items.length} items from ${catalog.source}`);
-  console.log(ai.enabled ? `[ai] Claude ranking on (${ai.model})` : `[ai] Claude ranking off: ${ai.reason}`);
+  console.log(ai.enabled ? `[ai] AI ranking on: ${ai.provider} (${ai.model})` : `[ai] AI ranking off: ${ai.reason}`);
 });

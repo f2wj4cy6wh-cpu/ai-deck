@@ -1,25 +1,29 @@
 {
-    "name": "ai-deck",
-    "version": "0.1.0",
-    "private": true,
-    "description": "Find Claude skills, plugins, MCP servers, prompts and repos by describing what you need in plain English.",
-    "type": "module",
-    "engines": {
-        "node": ">=20"
-    },
-    "scripts": {
-        "build:css": "tailwindcss -c tailwind.config.cjs -i src/styles.css -o public/styles.css --minify",
-        "watch:css": "tailwindcss -c tailwind.config.cjs -i src/styles.css -o public/styles.css --watch",
-        "ingest": "node scripts/ingest.js",
-        "ingest:offline": "node scripts/ingest.js --offline",
-        "start": "node server/index.js",
-        "dev": "npm run build:css && node --watch server/index.js",
-        "test": "node --test \"test/*.test.js\""
-    },
-    "dependencies": {
-        "@anthropic-ai/sdk": "^1.3.0"
-    },
-    "devDependencies": {
-        "tailwindcss": "^3.4.17"
-    }
+  "name": "ai-deck",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Find skills, plugins, MCP servers, prompts and repos for Claude, ChatGPT, Gemini, Codex, Cursor and Copilot in plain English.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.cjs -i src/styles.css -o public/styles.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.cjs -i src/styles.css -o public/styles.css --watch",
+    "build:web": "node scripts/build-web.js",
+    "build": "npm run build:css && npm run build:web",
+    "ingest": "node scripts/ingest.js",
+    "ingest:offline": "node scripts/ingest.js --offline",
+    "start": "node server/index.js",
+    "dev": "npm run build && node --watch server/index.js",
+    "deploy": "npm run build && wrangler deploy",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17",
+    "wrangler": "^4.155.0"
+  }
 }

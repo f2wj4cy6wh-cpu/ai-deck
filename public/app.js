@@ -1,5 +1,11 @@
 // AI Deck front end. Vanilla ES module, hash routing, markup and classes taken from the
 // Stitch "AI Developer Resource Hub Deck" screens.
+//
+// Search and listings run in the browser over /catalog.json using the same modules as the server
+// (copied to /lib by scripts/build-web.js). Only AI ranking and submissions go to the server.
+import { buildCatalog } from "./lib/catalog.js";
+import { buildIndex } from "./lib/search.js";
+import { createApi } from "./lib/api.js";
 
 const $view = document.getElementById("view");
 const $toast = document.getElementById("toast");
@@ -24,12 +30,32 @@ function writeStore(key, value) {
   }
 }
 
+const $agentSelect = document.getElementById("agent-select");
+
+// First visit from a chat app's link: start with that app picked. A choice in the menu always wins.
+function agentFromReferrer() {
+  let host = "";
+  try {
+    host = new URL(document.referrer).hostname;
+  } catch {
+    return null;
+  }
+  if (/(^|\.)(chatgpt\.com|chat\.openai\.com)$/.test(host)) return "chatgpt";
+  if (/(^|\.)claude\.ai$/.test(host)) return "claude";
+  if (/^gemini\.google\.com$/.test(host)) return "gemini-app";
+  return null;
+}
+
 const state = {
   level: readStore("aideck.level", "beginner"),
+  agent: readStore("aideck.agent", null) ?? agentFromReferrer() ?? "all",
+  agents: [], // [{id, label, short}] from /api/stats
+  installTab: new Map(), // item id -> agent tab picked on that card
   saved: new Set(readStore("aideck.saved", [])),
   recent: readStore("aideck.recent", []),
   items: new Map(), // id -> item, for every item rendered so far
   stats: null,
+  ai: { enabled: null }, // from the server's /api/ai; null until known
   renderToken: 0,
 };
 
@@ -54,7 +80,36 @@ function ago(iso) {
   return `${Math.floor(days / 365)}y ago`;
 }
 
+const SERVER_ROUTES = new Set(["/api/rank", "/api/ai", "/api/submit"]);
+let localApiPromise = null;
+
+/** Downloads the catalog once and builds the search index in the browser. */
+function localApi() {
+  localApiPromise ??= (async () => {
+    const res = await fetch("/catalog.json");
+    if (!res.ok) throw new Error(`Could not load the catalog (${res.status})`);
+    const catalog = buildCatalog(await res.json(), "catalog.json");
+    const index = buildIndex(catalog.items);
+    return createApi({
+      state: () => ({ catalog, index }),
+      rerank: async () => null,
+      aiStatus: () => state.ai,
+      saveSubmission: async () => {
+        throw new Error("submissions go to the server");
+      },
+    });
+  })();
+  localApiPromise.catch(() => (localApiPromise = null));
+  return localApiPromise;
+}
+
 async function api(path, options) {
+  const url = new URL(path, location.origin);
+  if (!SERVER_ROUTES.has(url.pathname)) {
+    const [status, body] = await (await localApi())("GET", url, async () => "");
+    if (status >= 400) throw new Error(body.error || `Request failed (${status})`);
+    return body;
+  }
   const res = await fetch(path, options);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
@@ -72,6 +127,18 @@ function toast(message) {
   $toast.classList.remove("opacity-0", "-translate-y-2");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $toast.classList.add("opacity-0", "-translate-y-2"), 2200);
+}
+
+/** Confirms a copy on the button that was clicked, where the user is looking. */
+function flashCopied(button) {
+  if (!button || button.tagName !== "BUTTON") return;
+  clearTimeout(button._flash);
+  button.dataset.label ??= button.innerHTML;
+  button.innerHTML = "COPIED ✓";
+  button._flash = setTimeout(() => {
+    button.innerHTML = button.dataset.label;
+    delete button.dataset.label;
+  }, 1600);
 }
 
 async function copyText(text) {
@@ -115,7 +182,7 @@ const LEVEL_LABEL = { beginner: "EASY", intermediate: "SOME SETUP", expert: "ADV
 
 // ---------- shared components ----------
 
-function searchConsole({ value = "", placeholder = "Describe what you want Claude to do...", type = "" } = {}) {
+function searchConsole({ value = "", placeholder = "Describe what you want your AI to do...", type = "" } = {}) {
   return `
   <form class="search-form relative w-full" role="search" data-type="${esc(type)}">
     <div class="flex items-center gap-space-xs bg-surface-container-low p-space-xs rounded-lg shadow-[3px_3px_0px_#000000] focus-within:shadow-[3px_3px_0px_#10b981] transition-shadow">
@@ -123,6 +190,7 @@ function searchConsole({ value = "", placeholder = "Describe what you want Claud
         <span class="font-label-code text-label-code text-primary mr-space-xs select-none" aria-hidden="true">&gt;_</span>
         <span class="sr-only">Search in plain English</span>
         <input name="q" value="${esc(value)}" autocomplete="off" enterkeyhint="search" class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none min-w-0" placeholder="${esc(placeholder)}" type="search" />
+        <kbd class="hidden lg:inline-block ml-space-xs px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-label-code text-label-sm" title="Press / to search from anywhere">/</kbd>
       </label>
       <button class="press flex items-center justify-center gap-1 bg-primary text-on-primary font-label-code text-label-code px-3 py-2.5 rounded shadow-[2px_2px_0px_#000000]" type="submit">
         <span class="material-symbols-outlined text-[16px]" aria-hidden="true">keyboard_return</span><span>[RUN]</span>
@@ -136,6 +204,27 @@ function chip(label, { href, active = false, action, value, tone = "" } = {}) {
   const look = active ? "bg-primary text-on-primary" : `bg-surface-container-low ${tone || "text-on-surface"} hover:text-primary`;
   if (href) return `<a class="${base} ${look}" href="${esc(href)}"${active ? ' aria-current="true"' : ""}>${esc(label)}</a>`;
   return `<button type="button" class="${base} ${look}" data-action="${esc(action)}" data-value="${esc(value)}">${esc(label)}</button>`;
+}
+
+const PAGE_SIZE = 30;
+
+/** "Official only" / "Easy setup" toggles, plus optional sort chips; each is a link that keeps the other params. */
+function filterBar(route, params, { sorts = null } = {}) {
+  const current = Object.fromEntries(params);
+  delete current.limit;
+  const toggle = (key, label) => chip(`[ ${label} ]`, { href: hrefWith(route, { ...current, [key]: current[key] === "1" ? "" : "1" }), active: current[key] === "1" });
+  const sortChips = sorts
+    ? sorts.map(([value, label], i) => chip(label, { href: hrefWith(route, { ...current, sort: i === 0 ? "" : value }), active: (current.sort || sorts[0][0]) === value })).join("")
+    : "";
+  return `<div class="flex flex-wrap items-center gap-space-xs">
+    <span class="font-label-code text-label-sm text-on-surface-variant tracking-widest uppercase">FILTER:</span>${toggle("official", "OFFICIAL ONLY")}${toggle("easy", "EASY SETUP")}
+    ${sorts ? `<span class="font-label-code text-label-sm text-on-surface-variant tracking-widest uppercase ml-space-xs">SORT:</span>${sortChips}` : ""}
+  </div>`;
+}
+
+function showMoreLink(route, params, shown, total) {
+  if (total <= shown) return "";
+  return `<a href="${esc(hrefWith(route, { ...Object.fromEntries(params), limit: shown + PAGE_SIZE }))}" class="press block text-center py-2 bg-surface-container-high text-primary font-label-code text-label-code rounded shadow-[2px_2px_0px_#000000]">[ SHOW MORE // ${total - shown} LEFT ]</a>`;
 }
 
 function tabButton(label, { href, active }) {
@@ -156,7 +245,12 @@ function trustBadge(item) {
   if (item.official) return `<span class="text-primary font-bold">● OFFICIAL</span>`;
   const s = item.trust?.score ?? 0;
   const tone = s >= 70 ? "text-primary" : s >= 50 ? "text-secondary" : "text-outline";
-  return `<span class="${tone} font-bold" title="${esc((item.trust?.reasons ?? []).join(", ") || "Trust score from objective signals")}">● TRUST ${s}</span>`;
+  return `<span class="${tone} font-bold" title="${esc((item.trust?.reasons ?? []).join(", ") || "Trust score from objective signals")}">● TRUST ${s}/100</span>`;
+}
+
+/** One line under list headers, so the trust number on every card isn't a mystery. */
+function trustLegend() {
+  return `<p class="font-body-sm text-body-sm text-outline -mt-space-sm">Trust (0–100) comes from public signals: official publisher, GitHub stars, recent updates, license. It isn't a security review.</p>`;
 }
 
 function bookmarkButton(item) {
@@ -174,31 +268,80 @@ function whyLine(why, ai) {
   </p>`;
 }
 
-function installPanel(item) {
-  if (!item.install?.command) return "";
+const agentShort = (id) => state.agents.find((a) => a.id === id)?.short ?? id;
+
+/** The agent whose install instructions a card shows: the picked agent if supported, else the first. */
+function activeAgent(item) {
+  const ids = Object.keys(item.installs ?? {});
+  const tab = state.installTab.get(item.id);
+  if (ids.includes(tab)) return tab;
+  return ids.includes(state.agent) ? state.agent : ids[0];
+}
+
+/** Text the COPY INSTALL button puts on the clipboard for an agent. */
+function installText(install) {
+  if (install.kind === "steps") return install.value.join("\n");
+  return install.value;
+}
+
+function installBody(install, agentId) {
   const beginner = state.level === "beginner";
-  const isSlash = item.install.command.startsWith("/");
-  const where = isSlash ? "Paste inside Claude Code (in the chat box)." : "Paste in your terminal (not inside Claude Code).";
-  const steps = item.install.steps?.length ? item.install.steps : null;
+  if (install.kind === "steps") {
+    return `<ol class="list-decimal pl-5 font-body-sm text-body-sm text-on-surface-variant space-y-0.5">${install.value.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`;
+  }
+  const where =
+    install.kind === "config"
+      ? `Add this to ${install.where}, then restart ${agentShort(agentId)}.`
+      : install.where === "claude code"
+        ? "Paste inside Claude Code (in the chat box)."
+        : `Paste in your ${install.where} (not inside the AI chat).`;
+  return `${beginner ? `<p class="font-body-sm text-body-sm text-on-surface-variant">${esc(where)}</p>` : `<p class="font-label-code text-label-sm text-outline uppercase">${esc(install.where ?? "")}</p>`}
+    <pre class="bg-surface-container-lowest rounded p-space-sm font-label-code text-[11px] leading-relaxed text-primary whitespace-pre-wrap break-all">${esc(install.value)}</pre>
+    ${beginner && install.steps?.length ? `<ol class="list-decimal pl-5 font-body-sm text-body-sm text-on-surface-variant space-y-0.5">${install.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}
+    ${install.note ? `<p class="font-body-sm text-body-sm text-secondary">${esc(install.note)}</p>` : ""}`;
+}
+
+function installPanel(item) {
+  const installs = item.installs ?? {};
+  const ids = Object.keys(installs).filter((id) => installs[id].kind !== "prompt");
+  if (!ids.length) return "";
+  const active = activeAgent(item);
+  const tabs =
+    ids.length > 1
+      ? `<div class="flex flex-wrap gap-1" role="tablist">${ids
+          .map(
+            (id) =>
+              `<button type="button" role="tab" aria-selected="${id === active}" data-action="install-tab" data-id="${esc(item.id)}" data-agent="${id}" class="px-2 py-0.5 rounded font-label-code text-label-sm uppercase ${id === active ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant hover:text-primary"}">${esc(agentShort(id))}</button>`,
+          )
+          .join("")}</div>`
+      : "";
   return `<details class="group">
     <summary class="list-none cursor-pointer font-label-code text-label-sm text-on-surface-variant hover:text-primary flex items-center gap-1 uppercase">
       <span class="material-symbols-outlined text-[14px] group-open:rotate-90 transition-transform" aria-hidden="true">chevron_right</span>
-      ${beginner ? "How do I install this?" : "Install command"}
+      ${state.level === "beginner" ? `How do I add this to ${esc(agentShort(active))}?` : "Install"}
     </summary>
     <div class="mt-space-xs flex flex-col gap-space-xs">
-      ${beginner ? `<p class="font-body-sm text-body-sm text-on-surface-variant">${esc(where)}</p>` : ""}
-      <pre class="bg-surface-container-lowest rounded p-space-sm font-label-code text-[11px] leading-relaxed text-primary whitespace-pre-wrap break-all">${esc(item.install.command)}</pre>
-      ${beginner && steps ? `<ol class="list-decimal pl-5 font-body-sm text-body-sm text-on-surface-variant space-y-0.5">${steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}
+      ${tabs}
+      <div class="flex flex-col gap-space-xs" data-install-body="${esc(item.id)}">${installBody(installs[active], active)}</div>
       ${item.requires?.length ? `<p class="font-label-code text-label-sm text-secondary uppercase">Needs: ${item.requires.map(esc).join(" · ")}</p>` : ""}
     </div>
   </details>`;
 }
 
+function worksWith(item) {
+  if (!item.agents?.length || item.type === "repo") return "";
+  const all = state.agents.length && item.agents.length >= state.agents.length;
+  return `<p class="font-label-code text-label-sm text-on-surface-variant uppercase tracking-wide"><span class="text-outline">WORKS WITH:</span> ${all ? "All agents" : item.agents.map((a) => esc(agentShort(a))).join(" · ")}</p>`;
+}
+
 // Card for skills, plugins and MCP servers ("Skills & Plugins Directory" screen).
-function toolCard(item, { why, ai, rank } = {}) {
+function toolCard(item, { why, ai } = {}) {
   const meta = TYPE_META[item.type];
   const telemetry = [
-    item.stars != null ? `<span class="flex items-center gap-1 text-on-surface"><span class="material-symbols-outlined text-[14px] text-secondary" aria-hidden="true">star</span>${fmt(item.stars)}</span>` : "",
+    // Skills and plugins usually live in a bigger repo; the stars are that repo's, so say so.
+    item.stars != null
+      ? `<span class="flex items-center gap-1 text-on-surface" title="${item.type === "mcp" ? "GitHub stars" : "Stars of the GitHub repo this comes from"}"><span class="material-symbols-outlined text-[14px] text-secondary" aria-hidden="true">star</span>${fmt(item.stars)}${item.type === "mcp" ? "" : ' <span class="text-outline">repo</span>'}</span>`
+      : "",
     item.version ? `<span class="text-on-surface">v${esc(item.version)}</span>` : "",
     item.license ? `<span class="text-primary font-bold">${esc(item.license)}</span>` : "",
     `<span class="text-on-surface-variant">${LEVEL_LABEL[item.level]}</span>`,
@@ -212,7 +355,7 @@ function toolCard(item, { why, ai, rank } = {}) {
         </span>
       </div>
       <div class="font-label-code text-label-sm tracking-widest flex items-center gap-1.5 pb-1">
-        ${trustBadge(item)}${rank ? `<span class="text-outline">#${String(rank).padStart(3, "0")}</span>` : ""}
+        ${trustBadge(item)}
       </div>
     </div>
     <div class="bg-surface-container-low p-space-md rounded rounded-tl-none shadow-[3px_3px_0px_#000000] flex flex-col gap-space-sm">
@@ -227,13 +370,14 @@ function toolCard(item, { why, ai, rank } = {}) {
       </div>
       <p class="font-body-md text-body-md text-on-surface-variant">${esc(item.summary || item.description)}</p>
       ${whyLine(why, ai)}
+      ${worksWith(item)}
       ${item.tags.length ? `<div class="flex flex-wrap gap-space-xs">${item.tags.slice(0, 4).map((t) => `<a href="${esc(hrefWith("skills", { tag: t }))}" class="px-2 py-0.5 bg-surface-container-high text-primary font-label-code text-label-sm rounded hover:bg-surface-container-highest">#${esc(t)}</a>`).join("")}</div>` : ""}
       ${installPanel(item)}
       <div class="pt-space-xs flex items-center justify-between gap-space-sm flex-wrap">
         <div class="flex items-center gap-space-sm font-label-code text-label-sm text-on-surface-variant flex-wrap">${telemetry.join('<span class="text-outline">/</span>')}</div>
         <div class="flex items-center gap-space-xs">
           ${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" class="press px-2.5 py-1.5 bg-surface-container-high text-on-surface font-label-code text-label-code rounded shadow-[2px_2px_0px_#000000] hover:text-primary" aria-label="Open source for ${esc(item.name)}">↗</a>` : ""}
-          ${item.install?.command ? `<button type="button" data-action="install" data-id="${esc(item.id)}" class="press px-3.5 py-1.5 bg-primary text-on-primary font-label-code text-label-code rounded shadow-[3px_3px_0px_#000000] uppercase font-bold tracking-wider">[ COPY INSTALL ]</button>` : ""}
+          ${Object.keys(item.installs ?? {}).length ? `<button type="button" data-action="install" data-id="${esc(item.id)}" class="press px-3.5 py-1.5 bg-primary text-on-primary font-label-code text-label-code rounded shadow-[3px_3px_0px_#000000] uppercase font-bold tracking-wider">[ COPY INSTALL ]</button>` : ""}
         </div>
       </div>
     </div>
@@ -273,7 +417,26 @@ function repoCard(item, { why, ai } = {}) {
   </article>`;
 }
 
-const PROMPT_TABS = { system: "System prompts", "few-shot": "Few-shot", teaching: "Teaching" };
+// Chat apps that accept a prefilled prompt in the URL. Other agents get copy-only.
+const PREFILL_URLS = {
+  chatgpt: { label: "ChatGPT", url: (p) => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+  claude: { label: "Claude", url: (p) => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+  "gemini-app": { label: "Gemini", url: () => "https://gemini.google.com/app", copyFirst: true },
+};
+
+function openInLink(prompt, id) {
+  const target = PREFILL_URLS[state.agent] ?? (state.agent === "all" ? PREFILL_URLS.claude : null);
+  if (!target) return "";
+  const other = state.agent === "all" ? PREFILL_URLS.chatgpt : null;
+  // Apps without a prefill URL get the prompt copied on the same click, ready to paste.
+  const button = (t, primary) =>
+    `<a href="${esc(t.url(prompt))}" target="_blank" rel="noopener noreferrer" ${t.copyFirst ? `data-action="copy-prompt" data-id="${esc(id)}"` : ""} class="press flex-1 flex items-center justify-center gap-1.5 ${primary ? "bg-primary-container text-on-primary-container" : "bg-surface-container-high text-on-surface"} font-label-code text-label-code py-2 rounded-lg shadow-[2px_2px_0px_#000000]">
+      <span class="material-symbols-outlined text-[15px]" aria-hidden="true">play_arrow</span><span>[ ${t.label.toUpperCase()} ]</span>
+    </a>`;
+  return button(target, true) + (other ? button(other, false) : "");
+}
+
+const PROMPT_TABS = { writing: "Writing", work: "Work", learning: "Learning", life: "Everyday life", coding: "Coding" };
 
 // Card for prompts ("Prompts Library" screen).
 function promptCard(item, { why, ai } = {}) {
@@ -302,9 +465,7 @@ function promptCard(item, { why, ai } = {}) {
         <button type="button" data-action="copy-prompt" data-id="${esc(item.id)}" class="press flex-1 flex items-center justify-center gap-1.5 bg-surface-container-high text-on-surface font-label-code text-label-code py-2 rounded-lg shadow-[2px_2px_0px_#000000]">
           <span class="material-symbols-outlined text-[15px]" aria-hidden="true">content_copy</span><span>[ COPY PROMPT ]</span>
         </button>
-        <a href="https://claude.ai/new?q=${encodeURIComponent(item.prompt ?? "")}" target="_blank" rel="noopener noreferrer" class="press flex-1 flex items-center justify-center gap-1.5 bg-primary-container text-on-primary-container font-label-code text-label-code py-2 rounded-lg shadow-[2px_2px_0px_#000000]">
-          <span class="material-symbols-outlined text-[15px]" aria-hidden="true">play_arrow</span><span>[ OPEN IN CLAUDE ]</span>
-        </a>
+        ${openInLink(item.prompt ?? "", item.id)}
       </div>
     </div>
   </article>`;
@@ -334,6 +495,24 @@ function emptyBlock(message, hint = "") {
   </div>`;
 }
 
+// What each chat app can take, for empty states when the picked agent can't use a whole category.
+const AGENT_CAN_USE = {
+  chatgpt: "ChatGPT takes remote MCP servers (as custom connectors) and prompts, not skills or plugins.",
+  claude: "The Claude app takes skills (uploaded as a .zip), remote MCP connectors and prompts. Plugins are for Claude Code.",
+  "gemini-app": "The Gemini app only takes prompts. Pick Gemini CLI in the For menu for MCP servers and extensions.",
+  windsurf: "Windsurf takes MCP servers and prompts.",
+};
+
+function noItemsBlock() {
+  const limits = state.agent !== "all" && AGENT_CAN_USE[state.agent];
+  return emptyBlock(limits ? `Nothing here for ${agentShort(state.agent)}. ${limits}` : "No items with that filter.", `<a href="#/prompts" class="font-label-code text-label-code text-primary pt-1">[ BROWSE PROMPTS ]</a>`);
+}
+
+/** Card list: one column on phones, two side by side on desktop. */
+function cardGrid(html) {
+  return `<div class="grid grid-cols-1 lg:grid-cols-2 gap-space-lg items-start">${html}</div>`;
+}
+
 function page(inner) {
   return `<div class="flex flex-col w-full px-space-md space-y-space-lg">${inner}</div>`;
 }
@@ -341,11 +520,11 @@ function page(inner) {
 // ---------- views ----------
 
 const EXAMPLE_QUERIES = [
-  "let Claude use my web browser",
+  "let my AI use a web browser",
   "make slides from my notes",
   "find out why my app keeps crashing",
   "up-to-date docs for the library I'm using",
-  "connect Claude to my database",
+  "connect ChatGPT to my database",
   "review my pull requests",
 ];
 
@@ -364,8 +543,8 @@ async function viewExplore() {
   const stats = state.stats ?? (state.stats = await api("/api/stats"));
   const c = stats.counts;
   const folders = [
-    { label: "Agent Skills", sub: "Teach Claude new tricks", count: c.skill, href: hrefWith("skills", { type: "skill" }), type: "skill" },
-    { label: "Plugins", sub: "Bundles for Claude Code", count: c.plugin, href: hrefWith("skills", { type: "plugin" }), type: "plugin" },
+    { label: "Agent Skills", sub: "Teach your AI new tricks", count: c.skill, href: hrefWith("skills", { type: "skill" }), type: "skill" },
+    { label: "Plugins", sub: "Bundles for Claude Code & more", count: c.plugin, href: hrefWith("skills", { type: "plugin" }), type: "plugin" },
     { label: "MCP Servers", sub: "Connect apps & data", count: c.mcp, href: hrefWith("skills", { type: "mcp" }), type: "mcp" },
     { label: "Prompts", sub: "Copy-paste instructions", count: c.prompt, href: "#/prompts", type: "prompt" },
     { label: "GitHub Repos", sub: "Open-source stacks", count: c.repo, href: "#/repos", type: "repo" },
@@ -395,7 +574,7 @@ async function viewExplore() {
   const intro =
     state.level === "beginner"
       ? `<div class="bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] space-y-1">
-          <h1 class="font-headline-md text-headline-md text-on-surface">What do you want Claude to do?</h1>
+          <h1 class="font-headline-md text-headline-md text-on-surface">What do you want your AI to do?</h1>
           <p class="font-body-md text-body-md text-on-surface-variant">Describe it in your own words. We'll find the skills, plugins and connectors that help, and tell you how to install them.</p>
         </div>`
       : `<h1 class="sr-only">Search the AI Deck index</h1>`;
@@ -408,35 +587,39 @@ async function viewExplore() {
     ${searchConsole()}
     <div class="flex flex-col gap-space-xs">
       <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Try asking:</span>
-      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">${EXAMPLE_QUERIES.map((q) => chip(q, { href: hrefWith("search", { q }) })).join("")}</div>
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 lg:flex-wrap lg:overflow-visible">${EXAMPLE_QUERIES.map((q) => chip(q, { href: hrefWith("search", { q }) })).join("")}</div>
     </div>
-    <div class="w-full bg-surface-container-lowest py-1.5 px-space-sm rounded-lg overflow-x-auto no-scrollbar shadow-[1px_1px_0px_#000000]">
-      <div class="flex items-center gap-space-md whitespace-nowrap font-label-code text-label-code text-on-surface-variant">
+    <div class="w-full bg-surface-container-lowest py-1.5 px-space-sm rounded-lg shadow-[1px_1px_0px_#000000]">
+      <div class="flex flex-wrap items-center gap-x-space-md gap-y-1 font-label-code text-label-code text-on-surface-variant">
         <span class="flex items-center gap-1.5 text-primary"><span class="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" aria-hidden="true"></span>LIVE_INDEX</span>
         ${["skill", "plugin", "mcp", "prompt", "repo"].map((t) => `<span class="text-outline-variant select-none" aria-hidden="true">|</span><span>${fmt(c[t])} <span class="text-outline">${TYPE_META[t].label.toUpperCase()}S</span></span>`).join("")}
-        <span class="text-outline-variant select-none" aria-hidden="true">|</span><span class="${stats.ai.enabled ? "text-primary" : "text-outline"}">CLAUDE_RANK: ${stats.ai.enabled ? "ON" : "OFF"}</span>
+        <span class="text-outline-variant select-none" aria-hidden="true">|</span><span class="${state.ai.enabled ? "text-primary" : "text-outline"}">AI_RANK: ${state.ai.enabled ? (state.ai.provider ?? "ON").toUpperCase() : "OFF"}</span>
       </div>
     </div>
     ${sectionHeader("Deck Collections", `<span class="font-label-code text-label-code text-on-surface-variant">DIR://ROOT</span>`)}
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-gutter">${folderHtml}</div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-gutter">${folderHtml}</div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-space-lg items-start">
     ${spotlight ? `<div class="flex flex-col space-y-space-xs">${sectionHeader("Spotlight Deck", `<span class="font-label-code text-label-code text-secondary">[TOP_TRUST]</span>`)}${card(spotlight)}</div>` : ""}
     ${
       state.recent.length
         ? `<div class="flex flex-col space-y-space-xs pb-space-sm">
             ${sectionHeader("Recent Cache", `<button type="button" data-action="flush-recent" class="font-label-code text-label-code text-outline hover:text-primary">FLUSH [x]</button>`)}
-            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">${state.recent.map((q) => chip(q, { href: hrefWith("search", { q }) })).join("")}</div>
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 lg:flex-wrap lg:overflow-visible">${state.recent.map((q) => chip(q, { href: hrefWith("search", { q }) })).join("")}</div>
           </div>`
         : ""
     }
+    </div>
   `);
 }
 
+/** API URL builder; scopes every listing and search to the agent picked in the header. */
 function hrefApi(path, params) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (Array.isArray(v)) v.forEach((x) => qs.append(k, x));
     else if (v != null && v !== "") qs.set(k, v);
   }
+  if (state.agent !== "all" && !params.ids) qs.set("agent", state.agent);
   return `${path}?${qs}`;
 }
 
@@ -458,56 +641,66 @@ async function viewSearch(params, token) {
   }
 
   pushRecent(q);
-  const local = await api(hrefApi("/api/search", { q, type, level: state.level, limit: 30 }));
+  const limit = Math.min(300, Number(params.get("limit")) || PAGE_SIZE);
+  const official = params.get("official") ?? "";
+  const easy = params.get("easy") ?? "";
+  const local = await api(hrefApi("/api/search", { q, type, level: state.level, limit, official, easy }));
   remember(local.results.map((r) => r.item));
 
+  const correction = local.intent.corrected
+    ? `<p class="font-body-sm text-body-sm text-on-surface-variant">Showing results for <a href="${esc(hrefWith("search", { q: local.intent.corrected, type }))}" class="text-primary font-bold">${esc(local.intent.corrected)}</a></p>`
+    : "";
   const intentChips = local.intent.tags.length
-    ? `<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar"><span class="font-label-code text-label-sm text-on-surface-variant tracking-widest uppercase shrink-0">UNDERSTOOD:</span>${local.intent.tags.slice(0, 6).map((t) => `<span class="shrink-0 px-2 py-0.5 bg-surface-container-high text-primary font-label-code text-label-sm rounded">#${esc(t)}</span>`).join("")}</div>`
+    ? `<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar lg:flex-wrap lg:overflow-visible"><span class="font-label-code text-label-sm text-on-surface-variant tracking-widest uppercase shrink-0">UNDERSTOOD:</span>${local.intent.tags.slice(0, 6).map((t) => `<span class="shrink-0 px-2 py-0.5 bg-surface-container-high text-primary font-label-code text-label-sm rounded">#${esc(t)}</span>`).join("")}</div>`
     : "";
 
   const body = local.results.length
-    ? `<div id="ai-slot">${state.stats?.ai?.enabled === false ? "" : loadingBlock("CLAUDE IS RANKING THE BEST MATCHES")}</div>
+    ? `<div id="ai-slot">${state.ai.enabled === false ? "" : loadingBlock(`${(state.ai.provider ?? "AI").toUpperCase()} IS RANKING THE BEST MATCHES`)}</div>
        <div class="flex flex-col gap-space-lg" id="local-results">
-         ${sectionHeader(`Index Matches // ${local.total}`, `<span class="font-label-code text-label-code text-on-surface-variant">LOCAL_RANK</span>`)}
-         ${local.results.map((r, i) => card(r.item, { why: r.why, rank: i + 1 })).join("")}
+         ${sectionHeader(`Index Matches // ${local.total}`, `<span class="font-label-code text-label-code text-on-surface-variant">SHOWING ${local.results.length} OF ${local.total}</span>`)}
+         ${trustLegend()}
+         ${cardGrid(local.results.map((r) => card(r.item, { why: r.why })).join(""))}
+         ${showMoreLink("search", params, local.results.length, local.total)}
        </div>`
     : emptyBlock(
-        "Nothing matched that yet. Try describing the task differently, e.g. what you want to happen rather than a product name.",
+        official || easy
+          ? "Nothing matched with these filters. Try turning off Official only or Easy setup."
+          : "Nothing matched that yet. Try describing the task differently, e.g. what you want to happen rather than a product name.",
         `<div class="flex flex-wrap gap-2 pt-1">${EXAMPLE_QUERIES.slice(0, 3).map((ex) => chip(ex, { href: hrefWith("search", { q: ex }) })).join("")}</div>`,
       );
 
   return {
-    html: page(`${head}${intentChips}${body}`),
-    // Phase 2, once the page is in the DOM: ask Claude to rerank and explain, then patch #ai-slot.
-    after: () => local.results.length && enhanceWithClaude(q, type, token),
+    html: page(`${head}${filterBar("search", params)}${correction}${intentChips}${body}`),
+    // Phase 2, once the page is in the DOM: ask the AI to rerank and explain, then patch #ai-slot.
+    after: () => local.results.length && enhanceWithAi(q, type, token, params),
   };
 }
 
-async function enhanceWithClaude(q, type, token) {
+async function enhanceWithAi(q, type, token, params) {
   const slot = document.getElementById("ai-slot");
   if (!slot) return;
   try {
-    const ranked = await api(hrefApi("/api/rank", { q, type, level: state.level }));
+    const ranked = await api(hrefApi("/api/rank", { q, type, level: state.level, official: params.get("official") ?? "", easy: params.get("easy") ?? "" }));
     if (token !== state.renderToken) return;
     if (!ranked.ai) {
       slot.innerHTML = "";
-      if (state.stats) state.stats.ai = { enabled: false, reason: ranked.reason };
+      state.ai = { enabled: false, reason: ranked.reason };
       return;
     }
     remember(ranked.results.map((r) => r.item));
     const clarify = ranked.clarify
-      ? `<div class="bg-surface-container-high rounded p-space-sm shadow-[2px_2px_0px_#000000] font-body-md text-body-md text-on-surface flex gap-2"><span class="material-symbols-outlined text-secondary text-[18px]" aria-hidden="true">help</span><span><span class="font-label-code text-label-code text-secondary block">CLAUDE ASKS</span>${esc(ranked.clarify)} <span class="text-on-surface-variant">Add that to your search for sharper results.</span></span></div>`
+      ? `<div class="bg-surface-container-high rounded p-space-sm shadow-[2px_2px_0px_#000000] font-body-md text-body-md text-on-surface flex gap-2"><span class="material-symbols-outlined text-secondary text-[18px]" aria-hidden="true">help</span><span><span class="font-label-code text-label-code text-secondary block">${esc((ranked.provider ?? "AI").toUpperCase())} ASKS</span>${esc(ranked.clarify)} <span class="text-on-surface-variant">Add that to your search for sharper results.</span></span></div>`
       : "";
     slot.innerHTML = ranked.results.length
       ? `<div class="flex flex-col gap-space-lg pb-space-lg">
-          ${sectionHeader("Best Picks", `<span class="font-label-code text-label-code text-primary">[ CLAUDE_RANKED ]</span>`)}
+          ${sectionHeader("Best Picks", `<span class="font-label-code text-label-code text-primary">[ ${esc((ranked.provider ?? "AI").toUpperCase())}_RANKED ]</span>`)}
           ${clarify}
-          ${ranked.results.map((r, i) => card(r.item, { why: r.why, ai: true, rank: i + 1 })).join("")}
+          ${cardGrid(ranked.results.map((r) => card(r.item, { why: r.why, ai: true })).join(""))}
         </div>`
       : clarify;
   } catch (error) {
     if (token === state.renderToken) slot.innerHTML = "";
-    console.warn("Claude ranking unavailable:", error);
+    console.warn("AI ranking unavailable:", error);
   }
 }
 
@@ -519,14 +712,17 @@ function pushRecent(q) {
 async function viewSkills(params) {
   const type = ["skill", "plugin", "mcp"].includes(params.get("type")) ? params.get("type") : "";
   const tag = params.get("tag") ?? "";
-  const limit = Number(params.get("limit")) || 30;
-  const data = await api(hrefApi("/api/items", { type, types: type ? [] : ["skill", "plugin", "mcp"], tag, sort: "trust", limit }));
+  const limit = Number(params.get("limit")) || PAGE_SIZE;
+  const sort = ["trust", "updated", "stars"].includes(params.get("sort")) ? params.get("sort") : "trust";
+  // Filters and sort survive switching tabs and tags.
+  const keep = { official: params.get("official") ?? "", easy: params.get("easy") ?? "", sort: sort === "trust" ? "" : sort };
+  const data = await api(hrefApi("/api/items", { type, types: type ? [] : ["skill", "plugin", "mcp"], tag, sort, limit, official: keep.official, easy: keep.easy }));
   remember(data.items);
 
   const tabs = [["", "All"], ["skill", "Agent Skills"], ["plugin", "Plugins"], ["mcp", "MCP Servers"]]
-    .map(([t, label]) => tabButton(label, { href: hrefWith("skills", { type: t, tag }), active: t === type }))
+    .map(([t, label]) => tabButton(label, { href: hrefWith("skills", { ...keep, type: t, tag }), active: t === type }))
     .join("");
-  const tagChips = data.tags.map(({ tag: t }) => chip(`[ ${t} ]`, { href: hrefWith("skills", { type, tag: t === tag ? "" : t }), active: t === tag })).join("");
+  const tagChips = data.tags.map(({ tag: t }) => chip(`[ ${t} ]`, { href: hrefWith("skills", { ...keep, type, tag: t === tag ? "" : t }), active: t === tag })).join("");
 
   return `
   <div class="px-space-md py-space-xs bg-surface-container-lowest flex items-center justify-between text-on-surface-variant font-label-code text-label-code">
@@ -536,13 +732,13 @@ async function viewSkills(params) {
   ${page(`
     <div class="pt-space-sm">${searchConsole({ placeholder: "grep skills, plugins, mcp in plain English...", type })}</div>
     <div class="overflow-x-auto no-scrollbar -mx-space-md px-space-md"><div class="flex items-center gap-space-xs min-w-max pb-1">${tabs}</div></div>
-    <div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar pb-1">
+    <div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar pb-1 lg:flex-wrap lg:overflow-visible">
       <span class="text-on-surface-variant font-label-code text-label-sm tracking-widest uppercase shrink-0">TAGS:</span>${tagChips}
     </div>
-    <div class="flex flex-col gap-space-lg">
-      ${data.items.length ? data.items.map((item, i) => card(item, { rank: i + 1 })).join("") : emptyBlock("No items with that filter.")}
-    </div>
-    ${data.total > data.items.length ? `<a href="${esc(hrefWith("skills", { type, tag, limit: limit + 30 }))}" class="press block text-center py-2 bg-surface-container-high text-primary font-label-code text-label-code rounded shadow-[2px_2px_0px_#000000]">[ LOAD MORE // ${data.total - data.items.length} LEFT ]</a>` : ""}
+    ${filterBar("skills", params, { sorts: [["trust", "TRUST"], ["updated", "RECENTLY UPDATED"], ["stars", "STARS"]] })}
+    ${trustLegend()}
+    ${data.items.length ? cardGrid(data.items.map((item) => card(item)).join("")) : noItemsBlock()}
+    ${data.total > data.items.length ? `<a href="${esc(hrefWith("skills", { ...keep, type, tag, limit: limit + PAGE_SIZE }))}" class="press block text-center py-2 bg-surface-container-high text-primary font-label-code text-label-code rounded shadow-[2px_2px_0px_#000000]">[ LOAD MORE // ${data.total - data.items.length} LEFT ]</a>` : ""}
     <div class="bg-surface-container-lowest p-space-sm rounded shadow-[2px_2px_0px_#000000] flex flex-col gap-1 font-label-code text-label-sm text-on-surface-variant">
       <span class="text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" aria-hidden="true">code</span>SYS_AUDIT_LOG</span>
       <p><span class="text-secondary">&gt;</span> trust scores use stars, recency, license and publisher only</p>
@@ -577,8 +773,8 @@ async function viewRepos(params) {
         })
         .join("")}</div>
     </div>
-    ${data.languages.length ? `<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar pb-space-sm"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase shrink-0 mr-space-xs">[LANG]:</span>${[["", "All"], ...data.languages.map((l) => [l, l])].map(([l, label]) => chip(label, { href: hrefWith("repos", { sort, language: l }), active: l === language })).join("")}</div>` : ""}
-    <div class="flex flex-col gap-space-lg">${data.items.map((item) => repoCard(item)).join("") || emptyBlock("No repos for that language.")}</div>
+    ${data.languages.length ? `<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar pb-space-sm lg:flex-wrap lg:overflow-visible"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase shrink-0 mr-space-xs">[LANG]:</span>${[["", "All"], ...data.languages.map((l) => [l, l])].map(([l, label]) => chip(label, { href: hrefWith("repos", { sort, language: l }), active: l === language })).join("")}</div>` : ""}
+    ${data.items.length ? cardGrid(data.items.map((item) => repoCard(item)).join("")) : emptyBlock("No repos for that language.")}
   `);
 }
 
@@ -586,20 +782,22 @@ async function viewPrompts(params) {
   const category = Object.hasOwn(PROMPT_TABS, params.get("category")) ? params.get("category") : "";
   const data = await api(hrefApi("/api/items", { type: "prompt", category, sort: "name", limit: 100 }));
   remember(data.items);
-  const tabs = [["", "Curated deck"], ...Object.entries(PROMPT_TABS)]
+  const tabs = [["", "All"], ...Object.entries(PROMPT_TABS)]
     .map(([c, label]) => tabButton(label, { href: hrefWith("prompts", { category: c }), active: c === category }))
     .join("");
   return page(`
-    ${searchConsole({ placeholder: "grep prompts: what should Claude write or do?", type: "prompt" })}
+    ${searchConsole({ placeholder: "grep prompts: what should your AI write or do?", type: "prompt" })}
     <div class="overflow-x-auto no-scrollbar -mx-space-md px-space-md py-1"><div class="flex items-center gap-1.5 min-w-max">${tabs}</div></div>
     <div class="flex items-center justify-between px-space-xs font-label-sm text-label-sm text-on-surface-variant">
       <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary inline-block" aria-hidden="true"></span><span class="uppercase tracking-wider">INDEX: ${String(data.total).padStart(2, "0")}_PROMPT_BLOCKS</span></span>
       <span class="font-label-code text-label-code text-secondary">● ${state.level === "beginner" ? "EASIEST FIRST" : "ALL LEVELS"}</span>
     </div>
-    ${data.items
-      .sort((a, b) => (state.level === "beginner" ? levelRank(a) - levelRank(b) : 0))
-      .map((item) => promptCard(item))
-      .join("")}
+    ${cardGrid(
+      data.items
+        .sort((a, b) => (state.level === "beginner" ? levelRank(a) - levelRank(b) : 0))
+        .map((item) => promptCard(item))
+        .join(""),
+    )}
     <div class="pt-2 pb-4 flex items-center justify-center gap-2"><span class="h-1 w-6 bg-surface-container-high rounded-full"></span><span class="font-label-code text-label-code text-outline">// END OF DECK RECORD //</span><span class="h-1 w-6 bg-surface-container-high rounded-full"></span></div>
   `);
 }
@@ -614,7 +812,7 @@ async function viewSaved() {
   const data = await api(hrefApi("/api/items", { ids: ids.join(",") }));
   remember(data.items);
   return page(`${sectionHeader(`Saved // ${data.items.length}`, `<span class="font-label-code text-label-code text-on-surface-variant">THIS DEVICE</span>`)}
-    <div class="flex flex-col gap-space-lg">${data.items.map((item) => card(item)).join("")}</div>`);
+    ${cardGrid(data.items.map((item) => card(item)).join(""))}`);
 }
 
 async function viewStarter() {
@@ -623,10 +821,10 @@ async function viewStarter() {
   return page(`
     <div class="bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] space-y-1">
       <span class="font-label-code text-label-code text-primary">[ STARTER_KIT ]</span>
-      <h1 class="font-headline-md text-headline-md text-on-surface">New to Claude add-ons?</h1>
-      <p class="font-body-md text-body-md text-on-surface-variant"><strong class="text-on-surface">Skills</strong> teach Claude how to do a task. <strong class="text-on-surface">MCP servers</strong> connect Claude to apps and data. <strong class="text-on-surface">Plugins</strong> bundle several of these into one install. These are easy, well-maintained picks to start with.</p>
+      <h1 class="font-headline-md text-headline-md text-on-surface">New to AI add-ons?</h1>
+      <p class="font-body-md text-body-md text-on-surface-variant"><strong class="text-on-surface">Skills</strong> teach an AI agent how to do a task. <strong class="text-on-surface">MCP servers</strong> connect it to apps and data (they work in Claude, ChatGPT, Gemini, Cursor and more). <strong class="text-on-surface">Plugins</strong> bundle several of these into one install. These are easy, well-maintained picks to start with.</p>
     </div>
-    <div class="flex flex-col gap-space-lg">${data.items.map((item) => card(item)).join("")}</div>
+    ${cardGrid(data.items.map((item) => card(item)).join(""))}
   `);
 }
 
@@ -646,6 +844,15 @@ async function render() {
   const token = ++state.renderToken;
   $sectionLabel.textContent = view.label;
   document.title = route === "explore" ? "AI Deck" : `${view.label} · AI Deck`;
+  for (const link of document.querySelectorAll(".top-link")) {
+    const active = link.dataset.path === view.nav;
+    link.classList.toggle("bg-surface-container-high", active);
+    link.classList.toggle("text-primary", active);
+    link.classList.toggle("text-on-surface-variant", !active);
+    link.classList.toggle("hover:text-primary", !active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
   for (const link of document.querySelectorAll(".nav-link")) {
     const active = link.dataset.path === view.nav;
     link.classList.toggle("text-primary", active);
@@ -758,20 +965,40 @@ document.addEventListener("click", async (event) => {
 
   const item = state.items.get(el.dataset.id);
   switch (el.dataset.action) {
-    case "install":
+    case "install": {
       if (!item) return;
-      await copyText(item.install.command);
-      toast(item.install.command.startsWith("/") ? "COPIED: PASTE INTO CLAUDE CODE" : "COPIED: PASTE INTO YOUR TERMINAL");
+      const agentId = activeAgent(item);
+      const install = item.installs[agentId];
+      await copyText(installText(install));
+      flashCopied(el);
       break;
+    }
+    case "install-tab": {
+      if (!item) return;
+      state.installTab.set(item.id, el.dataset.agent);
+      for (const panel of document.querySelectorAll(`[data-install-body="${CSS.escape(item.id)}"]`)) {
+        panel.innerHTML = installBody(item.installs[el.dataset.agent], el.dataset.agent);
+        for (const tab of panel.parentElement.querySelectorAll('[data-action="install-tab"]')) {
+          const on = tab.dataset.agent === el.dataset.agent;
+          tab.setAttribute("aria-selected", String(on));
+          tab.classList.toggle("bg-primary", on);
+          tab.classList.toggle("text-on-primary", on);
+          tab.classList.toggle("bg-surface-container-high", !on);
+          tab.classList.toggle("text-on-surface-variant", !on);
+        }
+      }
+      break;
+    }
     case "clone":
       if (!item?.repo) return;
       await copyText(`git clone https://github.com/${item.repo}.git`);
-      toast("CLONE COMMAND COPIED");
+      flashCopied(el);
       break;
     case "copy-prompt":
       if (!item) return;
       await copyText(item.prompt);
-      toast("PROMPT COPIED");
+      if (el.tagName === "A") toast("PROMPT COPIED: PASTE IT INTO THE CHAT");
+      else flashCopied(el);
       break;
     case "save": {
       if (!item) return;
@@ -817,5 +1044,30 @@ window.addEventListener("hashchange", () => {
   window.scrollTo({ top: 0 });
 });
 
-renderLevel();
-render();
+$agentSelect.addEventListener("change", () => {
+  state.agent = $agentSelect.value;
+  state.installTab.clear();
+  writeStore("aideck.agent", state.agent);
+  toast(state.agent === "all" ? "SHOWING: ALL AGENTS" : `SHOWING: ${agentShort(state.agent)}`);
+  render();
+});
+
+async function boot() {
+  renderLevel();
+  $view.innerHTML = page(loadingBlock("LOADING THE INDEX"));
+  api("/api/ai")
+    .then((ai) => (state.ai = ai))
+    .catch(() => (state.ai = { enabled: false, reason: "server unavailable" }));
+  try {
+    state.stats = await api("/api/stats");
+    state.agents = state.stats.agents;
+    $agentSelect.insertAdjacentHTML("beforeend", state.agents.map((a) => `<option value="${esc(a.id)}">${esc(a.short)}</option>`).join(""));
+    if (!state.agents.some((a) => a.id === state.agent)) state.agent = "all";
+    $agentSelect.value = state.agent;
+  } catch {
+    // render() shows the error for the current view.
+  }
+  render();
+}
+
+boot();

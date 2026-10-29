@@ -44,3 +44,12 @@
     font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
   }
 }
+
+/* JetBrains Mono's ligatures draw "--" as one long dash; commands must look exactly as typed. */
+pre,
+code,
+kbd,
+.font-label-code {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+}

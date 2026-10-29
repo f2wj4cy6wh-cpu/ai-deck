@@ -3,3 +3,8 @@ public/styles.css
 data/catalog.json
 data/github-cache.json
 data/submissions.json
+public/lib/
+public/catalog.json
+data/ingest.log
+.wrangler/
+.dev.vars*
