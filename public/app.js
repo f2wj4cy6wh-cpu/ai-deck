@@ -647,6 +647,21 @@ async function viewSearch(params, token) {
   const local = await api(hrefApi("/api/search", { q, type, level: state.level, limit, official, easy }));
   remember(local.results.map((r) => r.item));
 
+  // A chat app can only use some types; say how much the agent filter is hiding instead of showing weak leftovers.
+  let agentNote = "";
+  if (state.agent !== "all") {
+    const qs = new URLSearchParams({ q, level: state.level, limit: String(PAGE_SIZE) }); // same page size, so the count matches
+    if (type) qs.set("type", type);
+    const everyone = await api(`/api/search?${qs}`);
+    if (everyone.total > Math.max(10, local.total * 3)) {
+      agentNote = `<div class="bg-surface-container-high rounded p-space-sm shadow-[2px_2px_0px_#000000] font-body-md text-body-md text-on-surface flex gap-2">
+        <span class="material-symbols-outlined text-secondary text-[18px]" aria-hidden="true">filter_alt</span>
+        <span>${local.total ? `Showing what works in ${esc(agentShort(state.agent))}.` : `Nothing here works in ${esc(agentShort(state.agent))}.`} ${esc(AGENT_CAN_USE[state.agent] ?? "")}
+        <button type="button" data-action="agent-all" class="text-primary font-bold underline underline-offset-2">See all ${everyone.total} results for other AIs</button></span>
+      </div>`;
+    }
+  }
+
   const correction = local.intent.corrected
     ? `<p class="font-body-sm text-body-sm text-on-surface-variant">Showing results for <a href="${esc(hrefWith("search", { q: local.intent.corrected, type }))}" class="text-primary font-bold">${esc(local.intent.corrected)}</a></p>`
     : "";
@@ -670,7 +685,7 @@ async function viewSearch(params, token) {
       );
 
   return {
-    html: page(`${head}${filterBar("search", params)}${correction}${intentChips}${body}`),
+    html: page(`${head}${filterBar("search", params)}${agentNote}${correction}${intentChips}${body}`),
     // Phase 2, once the page is in the DOM: ask the AI to rerank and explain, then patch #ai-slot.
     after: () => local.results.length && enhanceWithAi(q, type, token, params),
   };
@@ -1011,6 +1026,10 @@ document.addEventListener("click", async (event) => {
       if (!on && parseHash().route === "saved") render();
       break;
     }
+    case "agent-all":
+      $agentSelect.value = "all";
+      $agentSelect.dispatchEvent(new Event("change"));
+      break;
     case "flush-recent":
       state.recent = [];
       writeStore("aideck.recent", []);
