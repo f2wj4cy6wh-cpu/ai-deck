@@ -10,3 +10,5 @@ data/ingest.log
 .dev.vars*
 data/trending.json
 public/catalog.json.br
+
+.taste-skill/

@@ -584,87 +584,163 @@ const STARTER_IDS = [
   "repo:hesreallyhim/awesome-claude-code",
 ];
 
+// Explore, laid out from the taste-skill app sheet "data-terminal" (styles.css, .xp-*). The screen's
+// question is "what can I add to my AI for what I want to do?": the search box answers it and is the
+// biggest control; the index strip, this week's risers and the most trusted tools answer what comes next.
+const INDEX_CELLS = [
+  { type: "skill", label: "Agent skills", note: "Teach your AI new tricks", href: () => hrefWith("skills", { type: "skill" }) },
+  { type: "plugin", label: "Plugins", note: "Bundles for Claude Code and more", href: () => hrefWith("skills", { type: "plugin" }) },
+  { type: "mcp", label: "MCP servers", note: "Connect apps and data", href: () => hrefWith("skills", { type: "mcp" }) },
+  { type: "prompt", label: "Prompts", note: "Copy-paste instructions", href: () => "#/prompts" },
+  { type: "repo", label: "GitHub repos", note: "Open-source stacks", href: () => "#/repos" },
+  { type: "starter", label: "Starter kit", note: "New here? Start with these", href: () => "#/starter" },
+];
+const TYPE_WORD = { skill: "skill", plugin: "plugin", mcp: "MCP server", prompt: "prompt", repo: "repo" };
+
+/** "29 Oct" for the freshness stamp; null when the catalog has no build date. */
+function shortDate(iso) {
+  const d = iso && new Date(iso);
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
+}
+
+/** Who publishes it, from the repo owner or the listed author. */
+function ownerOf(item) {
+  return item.repo ? item.repo.split("/")[0] : item.author || "";
+}
+
+/** Opens the item's own card, with its install steps. */
+function itemHref(item) {
+  return hrefWith("item", { id: item.id });
+}
+
+/** One item by id: explore's rows land here, on exactly the tool that was listed. */
+async function viewItem(params) {
+  const data = await api(hrefApi("/api/items", { ids: params.get("id") ?? "" }));
+  const item = remember(data.items)[0];
+  if (!item) return page(emptyBlock("That item isn't in the index any more.", `<a href="#/explore" class="font-label-code text-label-code text-primary pt-1">[ BACK TO EXPLORE ]</a>`));
+  document.title = `${item.name} · AI Deck`;
+  return page(card(item));
+}
+
+/** Search links in a run; each separator travels with the link after it, so no line ends on a "·". */
+function linkRun(queries) {
+  return queries
+    .map((q, i) => `<span class="item">${i ? '<span class="sep" aria-hidden="true">·</span>' : ""}<a href="${esc(hrefWith("search", { q }))}">${esc(q)}</a></span>`)
+    .join(" ");
+}
+
+function risingRow(item) {
+  const t = item.trending;
+  const gain = t?.estimated ? "new" : `+${t.weekly.toLocaleString("en-US")}`;
+  const stars = item.stars != null ? item.stars.toLocaleString("en-US") : "—";
+  const trust = String(item.trust?.score ?? "—");
+  return `<a class="xp-row" href="${esc(itemHref(item))}">
+    <span class="min-w-0">
+      <span class="name">${esc(item.name)}</span>
+      <span class="meta">${esc([ownerOf(item), TYPE_WORD[item.type]].filter(Boolean).join(" · "))}<span class="phone-only"> · <span class="fig">${stars}</span> stars · trust <span class="fig">${trust}</span></span></span>
+    </span>
+    <span class="num fig desk-only">${stars}</span>
+    <span class="num fig gain" title="${t?.estimated ? "A young repo rising fast; the weekly figure is an estimate" : "Stars gained this week, from GitHub trending"}">${gain}</span>
+    <span class="num fig desk-only">${trust}</span>
+  </a>`;
+}
+
+function trustRow(item) {
+  const trust = item.trust?.score ?? "—";
+  const who = item.official ? `${ownerOf(item) || "Official"} · official` : ownerOf(item);
+  return `<a class="xp-row" href="${esc(itemHref(item))}">
+    <span class="min-w-0">
+      <span class="name">${esc(item.name)}</span>
+      <span class="meta">${esc([who, TYPE_WORD[item.type]].filter(Boolean).join(" · "))}</span>
+    </span>
+    <span class="num fig" title="${esc((item.trust?.reasons ?? []).join(", ") || "Trust score from public signals")}">${trust}</span>
+  </a>`;
+}
+
 async function viewExplore() {
   const stats = state.stats ?? (state.stats = await api("/api/stats"));
-  const c = stats.counts;
-  const folders = [
-    { label: "Agent Skills", sub: "Teach your AI new tricks", count: c.skill, href: hrefWith("skills", { type: "skill" }), type: "skill" },
-    { label: "Plugins", sub: "Bundles for Claude Code & more", count: c.plugin, href: hrefWith("skills", { type: "plugin" }), type: "plugin" },
-    { label: "MCP Servers", sub: "Connect apps & data", count: c.mcp, href: hrefWith("skills", { type: "mcp" }), type: "mcp" },
-    { label: "Prompts", sub: "Copy-paste instructions", count: c.prompt, href: "#/prompts", type: "prompt" },
-    { label: "GitHub Repos", sub: "Open-source stacks", count: c.repo, href: "#/repos", type: "repo" },
-    { label: "Starter Kit", sub: "New here? Start here", count: STARTER_IDS.length, href: "#/starter", type: "starter" },
-  ];
-  const folderHtml = folders
-    .map((f) => {
-      const meta = TYPE_META[f.type] ?? { tab: "bg-surface-bright text-primary-fixed", icon: "rocket_launch", accent: "text-primary", ext: ".NEW" };
-      return `<a href="${esc(f.href)}" class="relative group press block">
-        <div class="flex items-center w-[68%] ${meta.tab} px-2 py-1 rounded-t-lg shadow-[2px_0px_0px_#000000]">
-          <span class="font-label-code text-label-code uppercase tracking-wider truncate">${f.count ?? 0} ITEMS</span>
-        </div>
-        <div class="bg-surface-container-low rounded-b-lg rounded-tr-lg p-space-sm shadow-[3px_3px_0px_#000000] group-hover:shadow-[3px_3px_0px_#10b981] flex flex-col justify-between min-h-[112px] transition-shadow">
-          <div class="flex items-start justify-between">
-            <div class="w-8 h-8 rounded bg-surface-container-highest ${meta.accent} flex items-center justify-center shadow-[1px_1px_0px_#000000]"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">${meta.icon}</span></div>
-            <span class="font-label-code text-label-code ${meta.accent} opacity-80">${meta.ext}</span>
-          </div>
-          <div class="mt-2">
-            <span class="font-headline-sm text-headline-sm text-on-surface block leading-tight">${esc(f.label)}</span>
-            <span class="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">${esc(f.sub)}</span>
-          </div>
-        </div>
-      </a>`;
-    })
-    .join("");
+  const c = { ...stats.counts, starter: STARTER_IDS.length };
+  const total = ["skill", "plugin", "mcp", "prompt", "repo"].reduce((sum, t) => sum + (c[t] ?? 0), 0);
+  const updated = shortDate(stats.generatedAt);
 
-  const intro =
-    state.level === "beginner"
-      ? `<div class="bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] space-y-1">
-          <h1 class="font-headline-md text-headline-md text-on-surface">What do you want your AI to do?</h1>
-          <p class="font-body-md text-body-md text-on-surface-variant">Describe it in your own words. We'll find the skills, plugins and connectors that help, and tell you how to install them.</p>
-        </div>`
-      : `<h1 class="sr-only">Search the AI Deck index</h1>`;
-
-  const [spotlightRes, trendingRes] = await Promise.all([
-    api(hrefApi("/api/items", { types: ["mcp", "plugin", "skill"], sort: "trust", limit: 1 })),
-    api(hrefApi("/api/items", { sort: "trending", limit: 4 })),
+  const [trustRes, trendingRes] = await Promise.all([
+    api(hrefApi("/api/items", { types: ["mcp", "plugin", "skill"], sort: "trust", limit: 12 })),
+    api(hrefApi("/api/items", { sort: "trending", limit: 5 })),
   ]);
-  const trendingHtml = trendingRes.items.length
-    ? `<div class="flex flex-col space-y-space-xs">
-        ${sectionHeader("Trending This Week", `<a href="#/trending" class="font-label-code text-label-code text-primary hover:underline">[ SEE ALL ${trendingRes.total} ]</a>`)}
-        ${cardGrid(remember(trendingRes.items).map((item) => card(item)).join(""))}
-      </div>`
-    : "";
-  const spotlight = remember(spotlightRes.items)[0];
+  // The same tool listed as a server and as its plugin shows once.
+  const seen = new Set();
+  const trusted = remember(trustRes.items).filter((i) => {
+    const key = (i.repo || i.name).toLowerCase();
+    return !seen.has(key) && seen.add(key);
+  }).slice(0, 5);
+  const rising = remember(trendingRes.items);
+  const top = rising.find((i) => !i.trending?.estimated);
 
-  return page(`
-    ${intro}
-    ${searchConsole()}
-    <div class="flex flex-col gap-space-xs">
-      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Try asking:</span>
-      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 lg:flex-wrap lg:overflow-visible">${EXAMPLE_QUERIES.map((q) => chip(q, { href: hrefWith("search", { q }) })).join("")}</div>
-    </div>
-    <div class="w-full bg-surface-container-lowest py-1.5 px-space-sm rounded-lg shadow-[1px_1px_0px_#000000]">
-      <div class="flex flex-wrap items-center gap-x-space-md gap-y-1 font-label-code text-label-code text-on-surface-variant">
-        <span class="flex items-center gap-1.5 text-primary"><span class="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" aria-hidden="true"></span>LIVE_INDEX</span>
-        ${["skill", "plugin", "mcp", "prompt", "repo"].map((t) => `<span class="text-outline-variant select-none" aria-hidden="true">|</span><span>${fmt(c[t])} <span class="text-outline">${TYPE_META[t].label.toUpperCase()}S</span></span>`).join("")}
-        <span class="text-outline-variant select-none" aria-hidden="true">|</span><span class="${state.ai.enabled ? "text-primary" : "text-outline"}">AI_RANK: ${state.ai.enabled ? (state.ai.provider ?? "ON").toUpperCase() : "OFF"}</span>
+  const title = `<div class="xp-title">
+      <div>
+        <h1>What do you want your AI to do?</h1>
+        <p class="xp-sub">Describe it in your own words. AI Deck searches <span class="fig">${total.toLocaleString("en-US")}</span> skills, plugins, MCP servers, prompts and repos, and shows how to install each one.</p>
       </div>
-    </div>
-    ${sectionHeader("Deck Collections", `<span class="font-label-code text-label-code text-on-surface-variant">DIR://ROOT</span>`)}
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-gutter">${folderHtml}</div>
-    ${trendingHtml}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-space-lg items-start">
-    ${spotlight ? `<div class="flex flex-col space-y-space-xs">${sectionHeader("Spotlight Deck", `<span class="font-label-code text-label-code text-secondary">[TOP_TRUST]</span>`)}${card(spotlight)}</div>` : ""}
-    ${
-      state.recent.length
-        ? `<div class="flex flex-col space-y-space-xs pb-space-sm">
-            ${sectionHeader("Recent Cache", `<button type="button" data-action="flush-recent" class="font-label-code text-label-code text-outline hover:text-primary">FLUSH [x]</button>`)}
-            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 lg:flex-wrap lg:overflow-visible">${state.recent.map((q) => chip(q, { href: hrefWith("search", { q }) })).join("")}</div>
-          </div>`
-        : ""
-    }
-    </div>
-  `);
+      ${updated ? `<p class="xp-stamp">Index updated ${esc(updated)}</p>` : ""}
+    </div>`;
+
+  const search = `<form class="search-form xp-search" role="search">
+      <label>
+        <span class="sr-only">Search in plain English</span>
+        <input name="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Describe a task in plain English" aria-keyshortcuts="/ Control+K Meta+K" />
+        <kbd title="Press / or Ctrl+K to search from any page">${/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}</kbd>
+      </label>
+      <button type="submit" class="xp-btn">Search</button>
+    </form>
+    <p class="xp-try"><span class="lead">Try</span> ${linkRun(EXAMPLE_QUERIES)}</p>`;
+
+  const index = `<section aria-labelledby="xp-index">
+      <div class="xp-head"><h2 id="xp-index">Browse the index</h2></div>
+      <nav class="xp-strip" aria-label="Browse by type">${INDEX_CELLS.map(
+        (cell) => `<a class="xp-cell" href="${esc(cell.href())}">
+          <span class="label">${esc(cell.label)}</span>
+          <span class="fig">${(c[cell.type] ?? 0).toLocaleString("en-US")}</span>
+          <span class="note">${esc(cell.note)}</span>
+        </a>`,
+      ).join("")}</nav>
+    </section>`;
+
+  const risingHtml = rising.length
+    ? `<section class="xp-rising" aria-labelledby="xp-rising">
+        <div class="xp-head"><h2 id="xp-rising">Rising this week</h2><a href="#/trending">All <span class="fig">${trendingRes.total}</span></a></div>
+        ${top ? `<p class="xp-finding">${esc(top.name)} gained <span class="fig">+${top.trending.weekly.toLocaleString("en-US")}</span> GitHub stars this week, the most of anything in the index. Stars show attention; check its trust score before you install.</p>` : ""}
+        <div class="xp-panel">
+          <div class="xp-row xp-cols" aria-hidden="true"><span>Name</span><span class="num">Stars</span><span class="num">This week</span><span class="num">Trust</span></div>
+          ${rising.map(risingRow).join("")}
+        </div>
+      </section>`
+    : "";
+
+  const trustHtml = trusted.length
+    ? `<section class="xp-trust" aria-labelledby="xp-trust">
+        <div class="xp-head"><h2 id="xp-trust">Most trusted</h2><a href="${esc(hrefWith("skills", { sort: "trust" }))}">All by trust</a></div>
+        <p class="xp-finding">Trust (0–100) comes from public signals: official publisher, stars, recent updates and license.</p>
+        <div class="xp-panel">
+          <div class="xp-row xp-cols" aria-hidden="true"><span>Name</span><span class="num">Trust</span></div>
+          ${trusted.map(trustRow).join("")}
+        </div>
+      </section>`
+    : "";
+
+  const recent = state.recent.length
+    ? `<section aria-labelledby="xp-recent">
+        <div class="xp-head"><h2 id="xp-recent">Your recent searches</h2><button type="button" data-action="flush-recent">Clear</button></div>
+        <p class="xp-recent">${linkRun(state.recent)}</p>
+      </section>`
+    : "";
+
+  return page(`<div class="xp">
+    ${title}
+    ${search}
+    ${index}
+    <div class="xp-pair">${risingHtml}${trustHtml}</div>
+    ${recent}
+  </div>`);
 }
 
 /** API URL builder; scopes every listing and search to the agent picked in the header. */
@@ -921,6 +997,7 @@ const VIEWS = {
   saved: { label: "Saved", nav: "saved", render: viewSaved },
   starter: { label: "Starter Kit", nav: "explore", render: viewStarter },
   trending: { label: "Trending", nav: "explore", render: viewTrending },
+  item: { label: "Item", nav: "explore", render: viewItem },
 };
 
 async function render() {
@@ -929,22 +1006,12 @@ async function render() {
   const token = ++state.renderToken;
   $sectionLabel.textContent = view.label;
   document.title = route === "explore" ? "AI Deck" : `${view.label} · AI Deck`;
-  for (const link of document.querySelectorAll(".top-link")) {
+  // The active destination: its label in full ink with a 1px accent line under it (styles.css).
+  for (const link of document.querySelectorAll(".top-link, .nav-link")) {
     const active = link.dataset.path === view.nav;
-    link.classList.toggle("bg-surface-container-high", active);
-    link.classList.toggle("text-primary", active);
+    link.classList.toggle("is-active", active);
     link.classList.toggle("text-on-surface-variant", !active);
-    link.classList.toggle("hover:text-primary", !active);
-    if (active) link.setAttribute("aria-current", "page");
-    else link.removeAttribute("aria-current");
-  }
-  for (const link of document.querySelectorAll(".nav-link")) {
-    const active = link.dataset.path === view.nav;
-    link.classList.toggle("text-primary", active);
-    link.classList.toggle("border-t-2", active);
-    link.classList.toggle("border-primary", active);
-    link.classList.toggle("bg-surface-container-high/40", active);
-    link.classList.toggle("text-on-surface-variant", !active);
+    link.classList.toggle("hover:text-on-surface", !active);
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
@@ -993,8 +1060,8 @@ function swapView(mount, animate) {
 function renderLevel() {
   for (const btn of document.querySelectorAll(".level-btn")) {
     const active = btn.dataset.level === state.level;
-    btn.classList.toggle("bg-primary", active);
-    btn.classList.toggle("text-on-primary", active);
+    btn.classList.toggle("is-active", active);
+    btn.classList.toggle("text-on-surface", active);
     btn.classList.toggle("text-on-surface-variant", !active);
     btn.setAttribute("aria-pressed", String(active));
   }

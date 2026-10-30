@@ -31,31 +31,31 @@
     <header id="site-header" class="fixed top-0 w-full z-50 pt-safe px-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.5)]">
       <div class="h-16 px-space-md max-w-2xl lg:max-w-6xl mx-auto flex items-center justify-between gap-space-sm lg:gap-space-lg">
         <a href="#/explore" class="flex items-center gap-space-sm min-w-0">
-          <span class="w-8 h-8 shrink-0 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center shadow-[2px_2px_0px_#000000] font-label-code text-label-code" aria-hidden="true">&gt;_</span>
+          <span class="w-8 h-8 shrink-0 rounded-md bg-primary-container text-on-primary-container flex items-center justify-center font-label-code text-label-code" aria-hidden="true">&gt;_</span>
           <span class="flex flex-col min-w-0">
-            <span class="font-label-code text-label-code text-primary tracking-wider uppercase">AI_DECK</span>
-            <span id="section-label" class="font-label-sm text-label-sm text-on-surface-variant truncate max-w-[140px] lg:hidden">Explore</span>
+            <span class="font-headline-sm text-[16px] leading-5 font-semibold text-on-surface">AI Deck</span>
+            <span id="section-label" class="font-headline-sm text-[12px] leading-4 text-on-surface-variant truncate max-w-[140px] lg:hidden">Explore</span>
           </span>
         </a>
         <!-- Desktop: the bottom tab bar moves up here. -->
         <nav aria-label="Primary" class="hidden lg:flex items-center gap-1 flex-1">
-          <a data-path="explore" href="#/explore" class="top-link px-3 py-2 rounded font-label-code text-label-code uppercase tracking-wider flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">folder</span>Explore</a>
-          <a data-path="skills" href="#/skills" class="top-link px-3 py-2 rounded font-label-code text-label-code uppercase tracking-wider flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">terminal</span>Skills</a>
-          <a data-path="prompts" href="#/prompts" class="top-link px-3 py-2 rounded font-label-code text-label-code uppercase tracking-wider flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">auto_awesome</span>Prompts</a>
-          <a data-path="repos" href="#/repos" class="top-link px-3 py-2 rounded font-label-code text-label-code uppercase tracking-wider flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">code</span>Repos</a>
-          <a data-path="saved" href="#/saved" class="top-link px-3 py-2 rounded font-label-code text-label-code uppercase tracking-wider flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">bookmark</span>Saved</a>
+          <a data-path="explore" href="#/explore" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">folder</span><span class="nav-label">Explore</span></a>
+          <a data-path="skills" href="#/skills" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">terminal</span><span class="nav-label">Skills</span></a>
+          <a data-path="prompts" href="#/prompts" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">auto_awesome</span><span class="nav-label">Prompts</span></a>
+          <a data-path="repos" href="#/repos" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">code</span><span class="nav-label">Repos</span></a>
+          <a data-path="saved" href="#/saved" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">bookmark</span><span class="nav-label">Saved</span></a>
         </nav>
         <div class="flex items-center gap-space-xs">
-          <label class="flex items-center bg-surface-container-lowest rounded-lg shadow-[2px_2px_0px_#000000] pl-2">
-            <span class="font-label-code text-label-sm text-on-surface-variant uppercase hidden sm:inline">For</span>
+          <label class="flex items-center bg-surface-container-lowest rounded-md border border-[#232925] pl-2">
+            <span class="font-headline-sm text-[12px] text-on-surface-variant hidden sm:inline">For</span>
             <span class="sr-only">Which AI agent do you use?</span>
-            <select id="agent-select" class="bg-transparent text-primary font-label-code text-label-sm uppercase py-1.5 pl-1 pr-1 focus:outline-none max-w-[92px] sm:max-w-none">
+            <select id="agent-select" class="bg-transparent text-on-surface font-headline-sm text-[12px] py-1.5 pl-1 pr-1 focus:outline-none max-w-[92px] sm:max-w-none">
               <option value="all">Any AI</option>
             </select>
           </label>
-          <div role="group" aria-label="Experience level" class="flex items-center bg-surface-container-lowest rounded-lg p-0.5 shadow-[2px_2px_0px_#000000]">
-            <button type="button" data-level="beginner" class="level-btn px-2 py-1.5 rounded font-label-code text-label-sm uppercase">New</button>
-            <button type="button" data-level="expert" class="level-btn px-2 py-1.5 rounded font-label-code text-label-sm uppercase">Expert</button>
+          <div role="group" aria-label="Experience level" class="flex items-center bg-surface-container-lowest rounded-md border border-[#232925] p-0.5">
+            <button type="button" data-level="beginner" class="level-btn px-2 py-1.5 font-headline-sm text-[12px]">New</button>
+            <button type="button" data-level="expert" class="level-btn px-2 py-1.5 font-headline-sm text-[12px]">Expert</button>
           </div>
           <a href="#/search" aria-label="Search" aria-keyshortcuts="/ Control+K Meta+K" title="Search (/ or Ctrl+K)" class="w-11 h-11 flex items-center justify-center rounded bg-surface-container-high/60 text-on-surface hover:text-primary transition-colors">
             <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
@@ -72,11 +72,11 @@
 
     <nav id="tab-bar" aria-label="Primary" class="lg:hidden fixed bottom-0 w-full z-50 pb-safe px-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.6)]">
       <div class="grid grid-cols-5 h-16 items-center px-space-xs max-w-2xl mx-auto">
-        <a data-path="explore" href="#/explore" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">folder</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Explore</span></a>
-        <a data-path="skills" href="#/skills" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">terminal</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Skills</span></a>
-        <a data-path="prompts" href="#/prompts" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">auto_awesome</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Prompts</span></a>
-        <a data-path="repos" href="#/repos" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">code</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Repos</span></a>
-        <a data-path="saved" href="#/saved" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">bookmark</span><span class="font-label-sm text-label-sm mt-0.5 tracking-tight uppercase">Saved</span></a>
+        <a data-path="explore" href="#/explore" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">folder</span><span class="nav-label text-[12px] leading-4 mt-1">Explore</span></a>
+        <a data-path="skills" href="#/skills" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">terminal</span><span class="nav-label text-[12px] leading-4 mt-1">Skills</span></a>
+        <a data-path="prompts" href="#/prompts" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">auto_awesome</span><span class="nav-label text-[12px] leading-4 mt-1">Prompts</span></a>
+        <a data-path="repos" href="#/repos" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">code</span><span class="nav-label text-[12px] leading-4 mt-1">Repos</span></a>
+        <a data-path="saved" href="#/saved" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">bookmark</span><span class="nav-label text-[12px] leading-4 mt-1">Saved</span></a>
       </div>
     </nav>
 

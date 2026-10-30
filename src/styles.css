@@ -90,6 +90,448 @@
   animation-duration: 150ms;
 }
 
+/*
+ * Explore screen and the shell (taste-skill app sheet "data-terminal", brand palette and faces kept).
+ * Cards sit darker than the ground; words in Geist, every figure in JetBrains Mono; the accent is only
+ * the 1px line under a selection and the data that moved this week. One gutter: 24px.
+ * Grid at 1440: the canvas is 1152 - 2 x 16 = 1120 = 736 + 24 + 360 (rising list beside the trust list).
+ */
+:root {
+  --ground: #101412;
+  --surface: #0b0f0d;
+  --raised: #181c1a;
+  --border: #232925;
+  --rule: #1a1f1c;
+  --control: #46524b;
+  --text: #e0e3df;
+  --muted: #b4bfb8;
+  --faint: #8a958e;
+  --accent: #4edea3;
+  --gap: 24px;
+  --font: "Geist", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.xp {
+  font-family: var(--font);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.xp a {
+  color: inherit;
+  text-decoration: none;
+}
+.fig {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-variant-ligatures: none;
+}
+.xp-title {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+.xp-title h1 {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.xp-sub {
+  margin: 4px 0 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--muted);
+  max-width: 62ch;
+}
+.xp-stamp {
+  margin: 0;
+  font-size: 12px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+/* Search: the screen's main job, so the biggest control on it. */
+.xp-search {
+  display: flex;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+}
+.xp-search:focus-within {
+  border-color: var(--control);
+}
+.xp-search label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 8px;
+}
+.xp-search input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--text);
+  font: 400 16px/24px var(--font);
+}
+.xp-search input::placeholder {
+  color: var(--faint);
+}
+.xp-search kbd {
+  font: 12px var(--mono);
+  color: var(--faint);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.xp-btn {
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--ground);
+  font: 600 14px var(--font);
+  cursor: pointer;
+  transition: background-color 120ms, transform 120ms;
+}
+.xp-btn:hover {
+  background: #ffffff;
+}
+.xp-btn:active {
+  transform: translateY(1px);
+}
+.xp-try {
+  margin: -12px 0 0;
+  font-size: 14px;
+  line-height: 28px;
+  color: var(--faint);
+}
+.xp-try a {
+  color: var(--muted);
+  white-space: nowrap;
+  border-bottom: 1px solid transparent;
+  transition: color 120ms, border-color 120ms;
+}
+.xp-try a:hover,
+.xp-try a:focus-visible {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.xp-try .item,
+.xp-recent .item {
+  white-space: nowrap;
+}
+.xp-try .lead {
+  margin-right: 4px;
+}
+.xp-try .sep,
+.xp-recent .sep {
+  margin: 0 8px 0 2px;
+}
+
+/* Section heads: a 16px title, the count or link on the right, and the finding under it. */
+.xp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.xp-head h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.xp-head a,
+.xp-head button {
+  font: 400 14px var(--font);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.xp-head a:hover,
+.xp-head button:hover {
+  color: var(--text);
+}
+.xp-finding {
+  margin: -4px 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+
+/* The index by type: one container split by 1px rules; each cell opens that part of the catalog. */
+.xp-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.xp-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 20px;
+  border-left: 1px solid var(--border);
+  transition: background-color 120ms;
+}
+.xp-cell:first-child {
+  border-left: 0;
+}
+.xp-cell:hover,
+.xp-cell:focus-visible {
+  background: var(--raised);
+}
+.xp-cell .label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.xp-cell .fig {
+  font-size: 24px;
+  line-height: 32px;
+}
+.xp-cell .note {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--faint);
+}
+.xp-cell::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  bottom: 10px;
+  width: 0;
+  height: 1px;
+  background: var(--accent);
+  transition: width 160ms ease-out;
+}
+.xp-cell:hover::after,
+.xp-cell:focus-visible::after {
+  width: 24px;
+}
+
+.xp-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--gap);
+  align-items: start;
+}
+.xp-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 0;
+}
+
+/* Rows: 56px pitch, two lines; name in ink, the rest grey; figures right-aligned in the mono. */
+.xp-row {
+  display: grid;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding: 8px 20px;
+  border-top: 1px solid var(--rule);
+  transition: background-color 120ms;
+}
+.xp-row:first-child {
+  border-top: 0;
+}
+.xp-row:hover,
+.xp-row:focus-visible {
+  background: var(--raised);
+}
+.xp-rising .xp-row {
+  grid-template-columns: minmax(0, 1fr) 88px 88px 56px;
+}
+.xp-cols {
+  min-height: 36px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 12px;
+  color: var(--faint);
+}
+.xp-cols:hover {
+  background: none;
+}
+.xp-rising .xp-cols {
+  grid-template-columns: minmax(0, 1fr) 88px 88px 56px;
+}
+.xp-trust .xp-row {
+  grid-template-columns: minmax(0, 1fr) 40px;
+}
+.xp-row .name {
+  display: block;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-row .meta {
+  display: block;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-row .num {
+  text-align: right;
+  font-size: 14px;
+  color: var(--muted);
+}
+.xp-row .gain {
+  color: var(--accent);
+}
+.xp-row .phone-only {
+  display: none;
+}
+.xp-recent {
+  font-size: 14px;
+  line-height: 28px;
+  color: var(--faint);
+}
+.xp-recent a {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.xp-recent a:hover {
+  color: var(--text);
+}
+
+@media (max-width: 1023px) {
+  .xp-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .xp-cell:nth-child(3n + 1) {
+    border-left: 0;
+  }
+  .xp-cell:nth-child(n + 4) {
+    border-top: 1px solid var(--border);
+  }
+  .xp-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  /* 12px from page() plus 4px: the 16px phone margin. */
+  .xp {
+    padding: 0 4px;
+  }
+  .xp-title {
+    display: block;
+  }
+  .xp-title h1 {
+    font-size: 22px;
+    line-height: 28px;
+  }
+  .xp-stamp {
+    margin-top: 4px;
+  }
+  .xp-search kbd {
+    display: none;
+  }
+  /* One row of suggestions that scrolls inside itself, so the index starts on the first screen. */
+  .xp-try {
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .xp-try::-webkit-scrollbar {
+    display: none;
+  }
+  .xp-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .xp-cell {
+    padding: 12px 16px;
+  }
+  .xp-cell:nth-child(n) {
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+  }
+  .xp-cell:nth-child(odd) {
+    border-left: 0;
+  }
+  .xp-cell:nth-child(-n + 2) {
+    border-top: 0;
+  }
+  .xp-cell::after {
+    left: 16px;
+    bottom: 6px;
+  }
+  /* Rising rows become two lines: name and this week's gain, then owner, stars and trust. */
+  .xp-rising .xp-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 8px 16px;
+  }
+  .xp-cols,
+  .xp-rising .desk-only {
+    display: none;
+  }
+  .xp-row .phone-only {
+    display: inline;
+  }
+  .xp-trust .xp-row {
+    padding: 8px 16px;
+  }
+}
+
+/* The shell: a plain bar; the active destination is a 1px accent line as wide as its label. */
+.top-link,
+.nav-link {
+  font-family: var(--font);
+}
+.top-link.is-active,
+.nav-link.is-active {
+  color: var(--text);
+}
+.top-link .nav-label,
+.nav-link .nav-label {
+  position: relative;
+}
+.top-link.is-active .nav-label::after,
+.nav-link.is-active .nav-label::after,
+.level-btn.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: var(--accent);
+}
+.level-btn {
+  position: relative;
+}
+.level-btn.is-active::after {
+  left: 8px;
+  right: 8px;
+  bottom: 3px;
+}
+
 /* JetBrains Mono's ligatures draw "--" as one long dash; commands must look exactly as typed. */
 pre,
 code,
