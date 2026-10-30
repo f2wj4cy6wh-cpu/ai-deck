@@ -22,25 +22,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..900&family=JetBrains+Mono:wght@400..800&display=swap" rel="stylesheet" />
     <!-- Only the icons app.js and this page use (≈8 KB instead of 1 MB). Add a new icon name here, alphabetically. -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&icon_names=add_box,auto_awesome,bolt,bookmark,chevron_right,close,code,content_copy,extension,filter_alt,folder,fork_right,help,hub,keyboard_return,play_arrow,psychology,rocket_launch,search,star,subdirectory_arrow_right,sync,terminal,trending_up,upload,verified&display=block" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&icon_names=add_box,auto_awesome,bolt,bookmark,cable,chevron_right,close,code,content_copy,extension,filter_alt,folder,fork_right,help,hub,keyboard_return,play_arrow,psychology,rocket_launch,search,star,subdirectory_arrow_right,sync,terminal,trending_up,upload,verified&display=block" rel="stylesheet" />
     <link href="/styles.css" rel="stylesheet" />
   </head>
   <body class="bg-surface text-on-surface flex flex-col min-h-screen">
     <a href="#view" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] bg-primary text-on-primary px-3 py-2 font-label-code text-label-code">Skip to content</a>
 
     <header id="site-header" class="fixed top-0 w-full z-50 pt-safe px-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.5)]">
-      <div class="h-16 px-space-md max-w-2xl lg:max-w-6xl mx-auto flex items-center justify-between gap-space-sm lg:gap-space-lg">
+      <div class="h-16 px-4 lg:px-space-md max-w-2xl lg:max-w-6xl mx-auto flex items-center justify-between gap-space-sm lg:gap-space-lg">
         <a href="#/explore" class="flex items-center gap-space-sm min-w-0">
           <span class="w-8 h-8 shrink-0 rounded-md bg-primary-container text-on-primary-container flex items-center justify-center font-label-code text-label-code" aria-hidden="true">&gt;_</span>
           <span class="flex flex-col min-w-0">
-            <span class="font-headline-sm text-[16px] leading-5 font-semibold text-on-surface">AI Deck</span>
-            <span id="section-label" class="font-headline-sm text-[12px] leading-4 text-on-surface-variant truncate max-w-[140px] lg:hidden">Explore</span>
+            <span class="font-headline-sm text-[16px] leading-5 font-semibold text-on-surface whitespace-nowrap">AI Deck</span>
+            <span id="section-label" class="font-headline-sm text-[12px] leading-4 text-on-surface-variant truncate max-w-[88px] sm:max-w-[140px] lg:hidden">Explore</span>
           </span>
         </a>
         <!-- Desktop: the bottom tab bar moves up here. -->
         <nav aria-label="Primary" class="hidden lg:flex items-center gap-1 flex-1">
           <a data-path="explore" href="#/explore" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">folder</span><span class="nav-label">Explore</span></a>
           <a data-path="skills" href="#/skills" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">terminal</span><span class="nav-label">Skills</span></a>
+          <a data-path="connectors" href="#/connectors" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">cable</span><span class="nav-label">Connectors</span></a>
           <a data-path="prompts" href="#/prompts" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">auto_awesome</span><span class="nav-label">Prompts</span></a>
           <a data-path="repos" href="#/repos" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">code</span><span class="nav-label">Repos</span></a>
           <a data-path="saved" href="#/saved" class="top-link px-3 py-2 text-[14px] flex items-center gap-1.5 transition-colors"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">bookmark</span><span class="nav-label">Saved</span></a>
@@ -49,7 +50,7 @@
           <label class="flex items-center bg-surface-container-lowest rounded-md border border-[#232925] pl-2">
             <span class="font-headline-sm text-[12px] text-on-surface-variant hidden sm:inline">For</span>
             <span class="sr-only">Which AI agent do you use?</span>
-            <select id="agent-select" class="bg-transparent text-on-surface font-headline-sm text-[12px] py-1.5 pl-1 pr-1 focus:outline-none max-w-[92px] sm:max-w-none">
+            <select id="agent-select" class="bg-transparent text-on-surface font-headline-sm text-[12px] py-1.5 pl-1 pr-1 focus:outline-none max-w-[80px] sm:max-w-none">
               <option value="all">Any AI</option>
             </select>
           </label>
@@ -66,14 +67,15 @@
 
     <main id="view" tabindex="-1" class="flex flex-col relative w-full max-w-2xl lg:max-w-6xl mx-auto pt-20 lg:pt-24 pb-28 lg:pb-16 bg-surface min-h-screen outline-none"></main>
 
-    <div id="toast" role="status" aria-live="polite" class="toast-pos fixed left-1/2 -translate-x-1/2 z-[60] bg-primary text-on-primary px-4 py-2 font-label-code text-label-code uppercase tracking-wider rounded shadow-[3px_3px_0px_#000000] pointer-events-none transition-all duration-200 opacity-0 -translate-y-2"></div>
+    <div id="toast" role="status" aria-live="polite" class="toast-pos fixed left-1/2 -translate-x-1/2 z-[60] bg-[#e0e3df] text-[#101412] px-4 py-2 font-headline-sm text-[14px] font-medium rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.45)] pointer-events-none transition-all duration-200 opacity-0 -translate-y-2 whitespace-nowrap"></div>
 
     <div id="modal-root"></div>
 
     <nav id="tab-bar" aria-label="Primary" class="lg:hidden fixed bottom-0 w-full z-50 pb-safe px-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.6)]">
-      <div class="grid grid-cols-5 h-16 items-center px-space-xs max-w-2xl mx-auto">
+      <div class="grid grid-cols-6 h-16 items-center px-2 max-w-2xl mx-auto">
         <a data-path="explore" href="#/explore" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">folder</span><span class="nav-label text-[12px] leading-4 mt-1">Explore</span></a>
         <a data-path="skills" href="#/skills" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">terminal</span><span class="nav-label text-[12px] leading-4 mt-1">Skills</span></a>
+        <a data-path="connectors" href="#/connectors" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">cable</span><span class="nav-label text-[12px] leading-4 mt-1">Connect</span></a>
         <a data-path="prompts" href="#/prompts" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">auto_awesome</span><span class="nav-label text-[12px] leading-4 mt-1">Prompts</span></a>
         <a data-path="repos" href="#/repos" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">code</span><span class="nav-label text-[12px] leading-4 mt-1">Repos</span></a>
         <a data-path="saved" href="#/saved" class="nav-link flex flex-col items-center justify-center h-full w-full py-1 transition-all"><span class="material-symbols-outlined text-[22px]" aria-hidden="true">bookmark</span><span class="nav-label text-[12px] leading-4 mt-1">Saved</span></a>

@@ -1,11 +1,12 @@
-// AI Deck front end. Vanilla ES module, hash routing, markup and classes taken from the
-// Stitch "AI Developer Resource Hub Deck" screens.
+// AI Deck front end. Vanilla ES module, hash routing. Screens follow the taste-skill app sheet
+// "data-terminal" with the brand's colours and faces kept (styles.css).
 //
 // Search and listings run in the browser over /catalog.json using the same modules as the server
 // (copied to /lib by scripts/build-web.js). Only AI ranking and submissions go to the server.
 import { buildCatalog } from "./lib/catalog.js";
 import { buildIndex } from "./lib/search.js";
 import { createApi } from "./lib/api.js";
+import { connectorUrl } from "./lib/agents.js";
 
 const $view = document.getElementById("view");
 const $toast = document.getElementById("toast");
@@ -63,13 +64,8 @@ const state = {
 
 const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ESC[c]);
-
-function fmt(n) {
-  if (typeof n !== "number") return null;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k`;
-  return String(n);
-}
+/** Third-party descriptions without their emoji (GitHub blurbs carry plenty); the words stay. */
+const plain = (value) => String(value ?? "").replace(/\p{Extended_Pictographic}️?\s?/gu, "").trim();
 
 function ago(iso) {
   if (!iso) return null;
@@ -136,9 +132,9 @@ let toastTimer;
 let toastUndo = null;
 /** Pass `undo` for a reversible action: the toast gets an UNDO button and stays up longer. */
 function toast(message, undo = null) {
-  $toast.textContent = `> ${message}`;
+  $toast.textContent = message;
   toastUndo = undo;
-  if (undo) $toast.insertAdjacentHTML("beforeend", `<button type="button" data-action="toast-undo" class="hit ml-3 underline underline-offset-2 font-bold">UNDO</button>`);
+  if (undo) $toast.insertAdjacentHTML("beforeend", `<button type="button" data-action="toast-undo" class="hit ml-3 underline underline-offset-2 font-semibold">Undo</button>`);
   $toast.classList.toggle("pointer-events-none", !undo);
   $toast.classList.remove("opacity-0", "-translate-y-2");
   clearTimeout(toastTimer);
@@ -155,7 +151,7 @@ function flashCopied(button) {
   if (!button || button.tagName !== "BUTTON") return;
   clearTimeout(button._flash);
   button.dataset.label ??= button.innerHTML;
-  button.innerHTML = "COPIED ✓";
+  button.innerHTML = "Copied";
   button._flash = setTimeout(() => {
     button.innerHTML = button.dataset.label;
     delete button.dataset.label;
@@ -189,115 +185,119 @@ function hrefWith(route, params) {
   return `#/${route}${qs ? `?${qs}` : ""}`;
 }
 
-// ---------- type styling (folder-tab colors from the design doc) ----------
+// ---------- type words ----------
 
+// Every screen follows the taste-skill app sheet "data-terminal" (styles.css): words in Geist, figures and
+// code in JetBrains Mono, panels darker than the ground with a 1px edge, no cast shadows, and the accent
+// only on a selection's 1px line and on data that moved.
 const TYPE_META = {
-  skill: { label: "Agent Skill", icon: "psychology", tab: "bg-secondary-container text-on-secondary-container", accent: "text-secondary", ext: ".SKL" },
-  plugin: { label: "Plugin", icon: "extension", tab: "bg-tertiary-container text-on-tertiary-container", accent: "text-tertiary", ext: ".PLG" },
-  mcp: { label: "MCP Server", icon: "hub", tab: "bg-primary text-on-primary", accent: "text-primary", ext: ".MCP" },
-  repo: { label: "GitHub Repo", icon: "fork_right", tab: "bg-repo text-on-repo", accent: "text-repo", ext: ".GIT" },
-  prompt: { label: "Prompt", icon: "auto_awesome", tab: "bg-primary-container text-on-primary-container", accent: "text-primary", ext: ".PRM" },
+  skill: { label: "Agent skill" },
+  plugin: { label: "Plugin" },
+  mcp: { label: "MCP server" },
+  repo: { label: "GitHub repo" },
+  prompt: { label: "Prompt" },
 };
 
-const LEVEL_LABEL = { beginner: "EASY", intermediate: "SOME SETUP", expert: "ADVANCED" };
+const LEVEL_LABEL = { beginner: "Easy setup", intermediate: "Some setup", expert: "Advanced" };
+
+const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "—");
 
 // ---------- shared components ----------
 
-function searchConsole({ value = "", placeholder = "Describe what you want your AI to do...", type = "" } = {}) {
-  return `
-  <form class="search-form relative w-full" role="search" data-type="${esc(type)}">
-    <div class="flex items-center gap-space-xs bg-surface-container-low p-space-xs rounded-lg shadow-[3px_3px_0px_#000000] focus-within:shadow-[3px_3px_0px_#10b981] transition-shadow">
-      <label class="flex items-center flex-1 px-space-sm py-2 bg-surface-container-lowest rounded min-w-0">
-        <span class="font-label-code text-label-code text-primary mr-space-xs select-none" aria-hidden="true">&gt;_</span>
-        <span class="sr-only">Search in plain English</span>
-        <input name="q" value="${esc(value)}" autocomplete="off" enterkeyhint="search" class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none min-w-0" placeholder="${esc(placeholder)}" type="search" aria-keyshortcuts="/ Control+K Meta+K" />
-        <kbd class="hidden lg:inline-block ml-space-xs px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-label-code text-label-sm whitespace-nowrap" title="Press / or Ctrl+K to search from any page">${/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}</kbd>
-      </label>
-      <button class="press flex items-center justify-center gap-1 bg-primary text-on-primary font-label-code text-label-code px-3 py-2.5 rounded shadow-[2px_2px_0px_#000000]" type="submit">
-        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">keyboard_return</span><span>[RUN]</span>
-      </button>
+/** The screen's title row: one h1, an optional line about the data, and an optional stamp or action on the right. */
+function titleRow(title, sub = "", right = "") {
+  return `<div class="xp-title">
+    <div class="min-w-0">
+      <h1>${title}</h1>
+      ${sub ? `<p class="xp-sub">${sub}</p>` : ""}
     </div>
+    ${right}
+  </div>`;
+}
+
+function searchConsole({ value = "", placeholder = "Describe a task in plain English", type = "" } = {}) {
+  return `<form class="search-form xp-search" role="search" data-type="${esc(type)}">
+    <label>
+      <span class="sr-only">Search in plain English</span>
+      <input name="q" value="${esc(value)}" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(placeholder)}" aria-keyshortcuts="/ Control+K Meta+K" />
+      <kbd title="Press / or Ctrl+K to search from any page">${/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}</kbd>
+    </label>
+    <button type="submit" class="xp-btn">Search</button>
   </form>`;
 }
 
-function chip(label, { href, active = false, action, value, tone = "" } = {}) {
-  const base = "press shrink-0 px-2.5 py-1 font-label-code text-label-sm rounded shadow-[1px_1px_0px_#000000] whitespace-nowrap";
-  const look = active ? "bg-primary text-on-primary" : `bg-surface-container-low ${tone || "text-on-surface"} hover:text-primary`;
-  if (href) return `<a class="${base} ${look}" href="${esc(href)}"${active ? ' aria-current="true"' : ""}>${esc(label)}</a>`;
-  return `<button type="button" class="${base} ${look}" data-action="${esc(action)}" data-value="${esc(value)}">${esc(label)}</button>`;
+/** A filter or a suggestion. Selected: ink label with the 1px accent line under it. */
+function chip(label, { href, active = false, action, value } = {}) {
+  const cls = `c-chip${active ? " is-active" : ""}`;
+  if (href) return `<a class="${cls}" href="${esc(href)}"${active ? ' aria-current="true"' : ""}><span>${esc(label)}</span></a>`;
+  return `<button type="button" class="${cls}" data-action="${esc(action)}" data-value="${esc(value)}"><span>${esc(label)}</span></button>`;
+}
+
+/** A row of chips that scrolls sideways on a phone instead of wrapping into a wall. */
+function chipRow(label, chips) {
+  return `<div class="c-chiprow">${label ? `<span class="c-chiprow-label">${esc(label)}</span>` : ""}${chips}</div>`;
 }
 
 const PAGE_SIZE = 30;
 
-/** "Official only" / "Easy setup" toggles, plus optional sort chips; each is a link that keeps the other params. */
+/** "Official only" / "Easy setup" toggles, plus optional sort tabs; each is a link that keeps the other params. */
 function filterBar(route, params, { sorts = null } = {}) {
   const current = Object.fromEntries(params);
   delete current.limit;
-  const toggle = (key, label) => chip(`[ ${label} ]`, { href: hrefWith(route, { ...current, [key]: current[key] === "1" ? "" : "1" }), active: current[key] === "1" });
-  const sortChips = sorts
+  const toggle = (key, label) => chip(label, { href: hrefWith(route, { ...current, [key]: current[key] === "1" ? "" : "1" }), active: current[key] === "1" });
+  const sortLinks = sorts
     ? sorts.map(([value, label], i) => chip(label, { href: hrefWith(route, { ...current, sort: i === 0 ? "" : value }), active: (current.sort || sorts[0][0]) === value })).join("")
     : "";
-  return `<div class="flex flex-wrap items-center gap-space-xs">
-    <span class="font-label-code text-label-sm text-on-surface-variant tracking-widest uppercase">FILTER:</span>${toggle("official", "OFFICIAL ONLY")}${toggle("easy", "EASY SETUP")}
-    ${sorts ? `<span class="font-label-code text-label-sm text-on-surface-variant tracking-widest uppercase ml-space-xs">SORT:</span>${sortChips}` : ""}
+  return `<div class="c-filters">
+    ${chipRow("Show", `${toggle("official", "Official only")}${toggle("easy", "Easy setup")}`)}
+    ${sorts ? chipRow("Sort by", sortLinks) : ""}
   </div>`;
 }
 
 function showMoreLink(route, params, shown, total) {
   if (total <= shown) return "";
-  return `<a href="${esc(hrefWith(route, { ...Object.fromEntries(params), limit: shown + PAGE_SIZE }))}" class="press block text-center py-2 bg-surface-container-high text-primary font-label-code text-label-code rounded shadow-[2px_2px_0px_#000000]">[ SHOW MORE // ${total - shown} LEFT ]</a>`;
+  return `<a href="${esc(hrefWith(route, { ...Object.fromEntries(params), limit: shown + PAGE_SIZE }))}" class="c-more">Show ${Math.min(PAGE_SIZE, total - shown)} more <span class="fig">· ${num(total - shown)} left</span></a>`;
 }
 
-function tabButton(label, { href, active }) {
-  const look = active
-    ? "bg-primary text-on-primary shadow-[2px_2px_0px_#000000]"
-    : "bg-surface-container-high text-on-surface hover:text-primary shadow-[2px_2px_0px_#000000]";
-  return `<a href="${esc(href)}" class="press shrink-0 px-3 py-1.5 font-label-code text-label-code uppercase tracking-wider rounded flex items-center gap-1.5 ${look}"${active ? ' aria-current="page"' : ""}>${active ? '<span class="w-1.5 h-1.5 bg-on-primary rounded-full" aria-hidden="true"></span>' : ""}[ ${esc(label)} ]</a>`;
+/** Underline tabs on one full-width rule; the selected one carries the 1px accent line. */
+function tabs(list) {
+  return `<nav class="c-tabs" aria-label="Sections">${list
+    .map(({ label, href, active, count }) => `<a href="${esc(href)}" class="${active ? "is-active" : ""}"${active ? ' aria-current="page"' : ""}><span>${esc(label)}</span>${count != null ? ` <span class="fig c-tab-count">${num(count)}</span>` : ""}</a>`)
+    .join("")}</nav>`;
 }
 
 function sectionHeader(title, right = "") {
-  return `<div class="flex items-center justify-between pt-1">
-    <h2 class="font-headline-sm text-headline-sm text-on-surface uppercase tracking-tight">${esc(title)}</h2>
-    ${right}
-  </div>`;
+  return `<div class="xp-head"><h2>${title}</h2>${right}</div>`;
 }
 
-/** "+16k this week" from GitHub trending, or "NEW" for a young repo whose weekly figure is only an estimate. */
+/** "+16,002 this week" from GitHub trending, or "New" for a young repo whose weekly figure is only an estimate. */
 function trendBadge(item) {
   const t = item.trending;
   if (!t) return "";
-  if (t.estimated) {
-    const since = t.createdAt ? ` · created ${ago(t.createdAt)}` : "";
-    return `<span class="flex items-center gap-1 text-secondary font-bold" title="A new repo gaining stars fast"><span class="material-symbols-outlined text-[14px]" aria-hidden="true">bolt</span>NEW${since}</span>`;
-  }
-  return `<span class="flex items-center gap-1 text-secondary font-bold" title="Stars gained this week, from GitHub trending"><span class="material-symbols-outlined text-[14px]" aria-hidden="true">trending_up</span>+${fmt(t.weekly)} this week</span>`;
+  if (t.estimated) return `<span class="c-gain" title="A new repo gaining stars fast; the weekly figure is an estimate">New${t.createdAt ? ` · created ${esc(ago(t.createdAt))}` : ""}</span>`;
+  return `<span class="c-gain" title="Stars gained this week, from GitHub trending"><span class="fig">+${num(t.weekly)}</span> this week</span>`;
 }
 
 function trustBadge(item) {
-  if (item.official) return `<span class="text-primary font-bold">● OFFICIAL</span>`;
   const s = item.trust?.score ?? 0;
-  const tone = s >= 70 ? "text-primary" : s >= 50 ? "text-secondary" : "text-outline";
-  return `<span class="${tone} font-bold" title="${esc((item.trust?.reasons ?? []).join(", ") || "Trust score from objective signals")}">● TRUST ${s}/100</span>`;
+  return `<span class="c-trust" title="${esc((item.trust?.reasons ?? []).join(", ") || "Trust score from public signals")}">Trust <span class="fig">${s}</span></span>`;
 }
 
 /** One line under list headers, so the trust number on every card isn't a mystery. */
 function trustLegend() {
-  return `<p class="font-body-sm text-body-sm text-outline -mt-space-sm">Trust (0–100) comes from public signals: official publisher, GitHub stars, recent updates, license. It isn't a security review.</p>`;
+  return `<p class="c-note">Trust (0–100) comes from public signals: official publisher, GitHub stars, recent updates and license. It isn't a security review, and installs are copy-only: nothing runs without you.</p>`;
 }
 
 function bookmarkButton(item) {
   const on = state.saved.has(item.id);
-  return `<button type="button" data-action="save" data-id="${esc(item.id)}" aria-pressed="${on}" aria-label="${on ? "Remove from saved" : "Save"} ${esc(item.name)}" class="press hit w-8 h-8 shrink-0 flex items-center justify-center bg-surface-container ${on ? "text-primary" : "text-on-surface-variant"} hover:text-primary shadow-[1px_1px_0px_#000000] rounded">
+  return `<button type="button" data-action="save" data-id="${esc(item.id)}" aria-pressed="${on}" aria-label="${on ? "Remove from saved" : "Save"} ${esc(item.name)}" class="c-icon hit${on ? " is-on" : ""}">
     <span class="material-symbols-outlined text-[18px] ${on ? "icon-fill" : ""}" aria-hidden="true">bookmark</span>
   </button>`;
 }
 
 function whyLine(why, ai) {
   if (!why) return "";
-  return `<p class="flex gap-1.5 font-body-sm text-body-sm ${ai ? "text-primary-fixed" : "text-on-surface-variant"} bg-surface-container-lowest rounded px-2 py-1.5">
-    <span class="material-symbols-outlined text-[14px] mt-px ${ai ? "text-primary" : "text-outline"}" aria-hidden="true">${ai ? "auto_awesome" : "subdirectory_arrow_right"}</span>
-    <span>${esc(why)}</span>
-  </p>`;
+  return `<p class="c-why${ai ? " is-ai" : ""}"><span class="c-why-label">${ai ? "Why it fits" : "Matched"}</span> ${esc(why)}</p>`;
 }
 
 const agentShort = (id) => state.agents.find((a) => a.id === id)?.short ?? id;
@@ -310,7 +310,7 @@ function activeAgent(item) {
   return ids.includes(state.agent) ? state.agent : ids[0];
 }
 
-/** Text the COPY INSTALL button puts on the clipboard for an agent. */
+/** Text the Copy install button puts on the clipboard for an agent. */
 function installText(install) {
   if (install.kind === "steps") return install.value.join("\n");
   return install.value;
@@ -319,7 +319,7 @@ function installText(install) {
 function installBody(install, agentId) {
   const beginner = state.level === "beginner";
   if (install.kind === "steps") {
-    return `<ol class="list-decimal pl-5 font-body-sm text-body-sm text-on-surface-variant space-y-0.5">${install.value.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`;
+    return `<ol class="c-steps">${install.value.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`;
   }
   const where =
     install.kind === "config"
@@ -327,10 +327,17 @@ function installBody(install, agentId) {
       : install.where === "claude code"
         ? "Paste inside Claude Code (in the chat box)."
         : `Paste in your ${install.where} (not inside the AI chat).`;
-  return `${beginner ? `<p class="font-body-sm text-body-sm text-on-surface-variant">${esc(where)}</p>` : `<p class="font-label-code text-label-sm text-outline uppercase">${esc(install.where ?? "")}</p>`}
-    <pre class="bg-surface-container-lowest rounded p-space-sm font-label-code text-[11px] leading-relaxed text-primary whitespace-pre-wrap break-all">${esc(install.value)}</pre>
-    ${beginner && install.steps?.length ? `<ol class="list-decimal pl-5 font-body-sm text-body-sm text-on-surface-variant space-y-0.5">${install.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}
-    ${install.note ? `<p class="font-body-sm text-body-sm text-secondary">${esc(install.note)}</p>` : ""}`;
+  return `<p class="c-where">${esc(beginner ? where : install.where ?? "")}</p>
+    <pre class="c-code">${esc(install.value)}</pre>
+    ${beginner && install.steps?.length ? `<ol class="c-steps">${install.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}
+    ${install.note ? `<p class="c-where">${esc(install.note)}</p>` : ""}`;
+}
+
+function installTabs(item, ids, active) {
+  if (ids.length < 2) return "";
+  return `<div class="c-agent-tabs" role="tablist">${ids
+    .map((id) => `<button type="button" role="tab" aria-selected="${id === active}" data-action="install-tab" data-id="${esc(item.id)}" data-agent="${id}" class="${id === active ? "is-active" : ""}"><span>${esc(agentShort(id))}</span></button>`)
+    .join("")}</div>`;
 }
 
 function installPanel(item) {
@@ -338,24 +345,12 @@ function installPanel(item) {
   const ids = Object.keys(installs).filter((id) => installs[id].kind !== "prompt");
   if (!ids.length) return "";
   const active = activeAgent(item);
-  const tabs =
-    ids.length > 1
-      ? `<div class="flex flex-wrap gap-1" role="tablist">${ids
-          .map(
-            (id) =>
-              `<button type="button" role="tab" aria-selected="${id === active}" data-action="install-tab" data-id="${esc(item.id)}" data-agent="${id}" class="px-2 py-0.5 rounded font-label-code text-label-sm uppercase ${id === active ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant hover:text-primary"}">${esc(agentShort(id))}</button>`,
-          )
-          .join("")}</div>`
-      : "";
-  return `<details class="group">
-    <summary class="list-none cursor-pointer font-label-code text-label-sm text-on-surface-variant hover:text-primary flex items-center gap-1 uppercase">
-      <span class="material-symbols-outlined text-[14px] group-open:rotate-90 transition-transform" aria-hidden="true">chevron_right</span>
-      ${state.level === "beginner" ? `How do I add this to ${esc(agentShort(active))}?` : "Install"}
-    </summary>
-    <div class="mt-space-xs flex flex-col gap-space-xs">
-      ${tabs}
-      <div class="flex flex-col gap-space-xs" data-install-body="${esc(item.id)}">${installBody(installs[active], active)}</div>
-      ${item.requires?.length ? `<p class="font-label-code text-label-sm text-secondary uppercase">Needs: ${item.requires.map(esc).join(" · ")}</p>` : ""}
+  return `<details class="c-install">
+    <summary><span class="material-symbols-outlined text-[16px]" aria-hidden="true">chevron_right</span>${state.level === "beginner" ? `How do I add this to ${esc(agentShort(active))}?` : "Install"}</summary>
+    <div class="c-install-body">
+      ${installTabs(item, ids, active)}
+      <div class="c-install-text" data-install-body="${esc(item.id)}">${installBody(installs[active], active)}</div>
+      ${item.requires?.length ? `<p class="c-where">Needs ${item.requires.map(esc).join(" · ")}</p>` : ""}
     </div>
   </details>`;
 }
@@ -363,90 +358,88 @@ function installPanel(item) {
 function worksWith(item) {
   if (!item.agents?.length || item.type === "repo") return "";
   const all = state.agents.length && item.agents.length >= state.agents.length;
-  return `<p class="font-label-code text-label-sm text-on-surface-variant uppercase tracking-wide"><span class="text-outline">WORKS WITH:</span> ${all ? "All agents" : item.agents.map((a) => esc(agentShort(a))).join(" · ")}</p>`;
+  return `<p class="c-meta">Works with ${all ? "every agent" : item.agents.map((a) => esc(agentShort(a))).join(" · ")}</p>`;
 }
 
-// Card for skills, plugins and MCP servers ("Skills & Plugins Directory" screen).
-function toolCard(item, { why, ai } = {}) {
-  const meta = TYPE_META[item.type];
-  const telemetry = [
-    // Skills and plugins usually live in a bigger repo; the stars are that repo's, so say so.
-    item.stars != null
-      ? `<span class="flex items-center gap-1 text-on-surface" title="${item.type === "mcp" ? "GitHub stars" : "Stars of the GitHub repo this comes from"}"><span class="material-symbols-outlined text-[14px] text-secondary" aria-hidden="true">star</span>${fmt(item.stars)}${item.type === "mcp" ? "" : ' <span class="text-outline">repo</span>'}</span>`
-      : "",
-    item.version ? `<span class="text-on-surface">v${esc(item.version)}</span>` : "",
-    item.license ? `<span class="text-primary font-bold">${esc(item.license)}</span>` : "",
-    `<span class="text-on-surface-variant">${LEVEL_LABEL[item.level]}</span>`,
-    trendBadge(item),
-  ].filter(Boolean);
-  const subtitle = [item.marketplace && `@${item.marketplace}`, item.plugin && `in ${item.plugin}`, item.author].filter(Boolean)[0] ?? "";
-  return `<article class="flex flex-col relative">
-    <div class="flex items-end justify-between px-space-xs">
-      <div class="flex items-center ${meta.tab} px-3 py-1 rounded-t shadow-[2px_0px_0px_#000000] translate-y-[1px]">
-        <span class="font-label-code text-label-code uppercase tracking-wide flex items-center gap-1 font-bold">
-          <span class="material-symbols-outlined text-[14px]" aria-hidden="true">${meta.icon}</span>${meta.label}
-        </span>
-      </div>
-      <div class="font-label-code text-label-sm tracking-widest flex items-center gap-1.5 pb-1">
-        ${trustBadge(item)}
-      </div>
+function tagLinks(item, route = "skills") {
+  if (!item.tags.length) return "";
+  return `<p class="c-tags">${item.tags
+    .slice(0, 4)
+    .map((t) => (route ? `<a href="${esc(hrefWith(route, { tag: t }))}">#${esc(t)}</a>` : `<span>#${esc(t)}</span>`))
+    .join(" ")}</p>`;
+}
+
+/** The kind, the publisher's standing and the trust score: the first line of every card. */
+function cardTop(item, kind = TYPE_META[item.type].label) {
+  return `<div class="c-top"><span>${esc(kind)}${item.official ? ' · <span class="c-official">Official</span>' : ""}</span>${trustBadge(item)}</div>`;
+}
+
+function cardHead(item, subtitle) {
+  return `<div class="c-head">
+    <div class="min-w-0">
+      <h3><a href="${esc(itemHref(item))}">${esc(item.name)}</a></h3>
+      ${subtitle ? `<p class="c-meta">${esc(subtitle)}</p>` : ""}
     </div>
-    <div class="bg-surface-container-low p-space-md rounded rounded-tl-none shadow-[3px_3px_0px_#000000] flex flex-col gap-space-sm">
-      <div class="flex items-start justify-between gap-space-sm">
-        <div class="flex flex-col min-w-0">
-          <h3 class="font-headline-sm text-headline-sm text-on-surface tracking-tight flex items-center gap-1.5 break-words">
-            ${esc(item.name)}${item.official ? '<span class="material-symbols-outlined text-primary text-[18px] icon-fill" title="Official publisher" aria-label="Official publisher">verified</span>' : ""}
-          </h3>
-          ${subtitle ? `<span class="font-label-code text-label-sm ${meta.accent} tracking-wider uppercase mt-0.5 truncate">${esc(subtitle)}</span>` : ""}
-        </div>
-        ${bookmarkButton(item)}
-      </div>
-      <p class="font-body-md text-body-md text-on-surface-variant">${esc(item.summary || item.description)}</p>
-      ${whyLine(why, ai)}
-      ${worksWith(item)}
-      ${item.tags.length ? `<div class="flex flex-wrap gap-space-xs">${item.tags.slice(0, 4).map((t) => `<a href="${esc(hrefWith("skills", { tag: t }))}" class="px-2 py-0.5 bg-surface-container-high text-primary font-label-code text-label-sm rounded hover:bg-surface-container-highest">#${esc(t)}</a>`).join("")}</div>` : ""}
-      ${installPanel(item)}
-      <div class="pt-space-xs flex items-center justify-between gap-space-sm flex-wrap">
-        <div class="flex items-center gap-space-sm font-label-code text-label-sm text-on-surface-variant flex-wrap">${telemetry.join('<span class="text-outline">/</span>')}</div>
-        <div class="flex items-center gap-space-xs">
-          ${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" class="press px-2.5 py-1.5 bg-surface-container-high text-on-surface font-label-code text-label-code rounded shadow-[2px_2px_0px_#000000] hover:text-primary" aria-label="Open source for ${esc(item.name)}">↗</a>` : ""}
-          ${Object.keys(item.installs ?? {}).length ? `<button type="button" data-action="install" data-id="${esc(item.id)}" class="press px-3.5 py-1.5 bg-primary text-on-primary font-label-code text-label-code rounded shadow-[3px_3px_0px_#000000] uppercase font-bold tracking-wider">[ COPY INSTALL ]</button>` : ""}
-        </div>
-      </div>
+    ${bookmarkButton(item)}
+  </div>`;
+}
+
+/** Figures and facts in one quiet line: stars, license, setup level, this week's gain. */
+function factLine(parts) {
+  const shown = parts.filter(Boolean);
+  return shown.length ? `<p class="c-facts">${shown.join('<span class="c-dot" aria-hidden="true">·</span>')}</p>` : "";
+}
+
+// Card for skills, plugins and MCP servers.
+function toolCard(item, { why, ai } = {}) {
+  const subtitle = [item.marketplace && `From the ${item.marketplace} marketplace`, item.plugin && `Part of ${item.plugin}`, item.author && `By ${item.author}`].filter(Boolean)[0] ?? "";
+  const facts = factLine([
+    // Skills and plugins usually live in a bigger repo; the stars are that repo's, so say so.
+    item.stars != null ? `<span title="${item.type === "mcp" ? "GitHub stars" : "Stars of the GitHub repo this comes from"}"><span class="fig">${num(item.stars)}</span> ${item.type === "mcp" ? "stars" : "repo stars"}</span>` : "",
+    item.version ? `<span>v<span class="fig">${esc(item.version)}</span></span>` : "",
+    item.license ? `<span>${esc(item.license)}</span>` : "",
+    `<span>${LEVEL_LABEL[item.level]}</span>`,
+    trendBadge(item),
+  ]);
+  const hasInstall = Object.keys(item.installs ?? {}).length;
+  return `<article class="c-card">
+    ${cardTop(item)}
+    ${cardHead(item, subtitle)}
+    <p class="c-summary">${esc(plain(item.summary || item.description))}</p>
+    ${whyLine(why, ai)}
+    ${facts}
+    ${worksWith(item)}
+    ${tagLinks(item)}
+    ${installPanel(item)}
+    <div class="c-actions">
+      ${hasInstall ? `<button type="button" data-action="install" data-id="${esc(item.id)}" class="c-btn">Copy install</button>` : ""}
+      ${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" class="c-link">Source ↗</a>` : ""}
     </div>
   </article>`;
 }
 
-// Card for GitHub repos ("GitHub AI Repos Radar" screen).
+// Card for GitHub repos.
 function repoCard(item, { why, ai } = {}) {
   const [owner, name] = (item.repo ?? `/${item.name}`).split("/");
-  const signals = [
-    item.stars != null && `<span class="px-1.5 py-0.5 bg-surface-container-high text-secondary font-label-code text-label-code rounded shadow-[1px_1px_0px_#000000]">★ ${fmt(item.stars)}</span>`,
-    item.forks != null && `<span class="px-1.5 py-0.5 bg-surface-container-high text-on-surface-variant font-label-code text-label-code rounded shadow-[1px_1px_0px_#000000]">⑂ ${fmt(item.forks)}</span>`,
-    item.license && `<span class="px-1.5 py-0.5 bg-surface-container-high text-primary font-label-code text-label-code rounded shadow-[1px_1px_0px_#000000]">● ${esc(item.license)}</span>`,
-    item.language && `<span class="px-1.5 py-0.5 bg-surface-container-highest text-on-surface font-label-code text-label-code rounded">${esc(item.language)}</span>`,
-    item.pushedAt && `<span class="px-1.5 py-0.5 text-on-surface-variant font-label-code text-label-code">pushed ${ago(item.pushedAt)}</span>`,
-    item.trending && `<span class="px-1.5 py-0.5 font-label-code text-label-code">${trendBadge(item)}</span>`,
-  ].filter(Boolean);
-  return `<article class="relative pt-3">
-    <div class="absolute top-0 left-3 px-space-sm py-0.5 bg-repo text-on-repo font-label-code text-label-code uppercase tracking-wider rounded-t shadow-[2px_0px_0px_#000000]">DIR://${esc((item.tags[0] ?? "repo").toUpperCase().replace(/[^A-Z0-9]+/g, "_"))}</div>
-    <div class="bg-surface-container-low rounded p-space-md shadow-[3px_3px_0px_#000000] flex flex-col gap-space-sm">
-      <div class="flex items-start justify-between gap-space-sm">
-        <div class="min-w-0">
-          <span class="font-label-sm text-label-sm text-on-surface-variant block truncate">${esc(owner)} /</span>
-          <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight truncate">${esc(name || item.name)}</h3>
-        </div>
-        ${bookmarkButton(item)}
-      </div>
-      ${signals.length ? `<div class="flex flex-wrap items-center gap-space-xs">${signals.join("")}</div>` : ""}
-      <p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">${esc(item.summary || item.description)}</p>
-      ${whyLine(why, ai)}
-      <div class="flex flex-wrap gap-space-xs">${item.tags.slice(0, 4).map((t) => `<span class="font-label-sm text-label-sm text-primary">#${esc(t)}</span>`).join("")}</div>
-      ${item.archived ? `<p class="font-label-code text-label-sm text-error uppercase">Archived: no longer maintained</p>` : ""}
-      <div class="grid grid-cols-2 gap-gutter-sm">
-        <a class="press flex items-center justify-center py-1.5 px-space-xs bg-primary text-on-primary font-label-code text-label-code uppercase rounded shadow-[2px_2px_0px_#000000]" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">[ VIEW REPO ↗ ]</a>
-        <button type="button" data-action="clone" data-id="${esc(item.id)}" class="press flex items-center justify-center py-1.5 px-space-xs bg-surface-container-high text-on-surface hover:text-primary font-label-code text-label-code uppercase rounded shadow-[2px_2px_0px_#000000]">[ CLONE ]</button>
-      </div>
+  const facts = factLine([
+    item.stars != null ? `<span><span class="fig">${num(item.stars)}</span> stars</span>` : "",
+    item.forks != null ? `<span><span class="fig">${num(item.forks)}</span> forks</span>` : "",
+    item.license ? `<span>${esc(item.license)}</span>` : "",
+    item.language ? `<span>${esc(item.language)}</span>` : "",
+    item.pushedAt ? `<span>Pushed ${esc(ago(item.pushedAt))}</span>` : "",
+    trendBadge(item),
+  ]);
+  return `<article class="c-card">
+    ${cardTop(item)}
+    ${cardHead({ ...item, name: name || item.name }, owner ? `By ${owner}` : "")}
+    <p class="c-summary">${esc(plain(item.summary || item.description))}</p>
+    ${whyLine(why, ai)}
+    ${facts}
+    ${tagLinks(item, null)}
+    ${item.archived ? `<p class="c-warn">Archived: no longer maintained.</p>` : ""}
+    <div class="c-actions">
+      <button type="button" data-action="clone" data-id="${esc(item.id)}" class="c-btn">Copy clone command</button>
+      ${item.url ? `<a class="c-link" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a>` : ""}
     </div>
   </article>`;
 }
@@ -463,44 +456,25 @@ function openInLink(prompt, id) {
   if (!target) return "";
   const other = state.agent === "all" ? PREFILL_URLS.chatgpt : null;
   // Apps without a prefill URL get the prompt copied on the same click, ready to paste.
-  const button = (t, primary) =>
-    `<a href="${esc(t.url(prompt))}" target="_blank" rel="noopener noreferrer" ${t.copyFirst ? `data-action="copy-prompt" data-id="${esc(id)}"` : ""} class="press flex-1 flex items-center justify-center gap-1.5 ${primary ? "bg-primary-container text-on-primary-container" : "bg-surface-container-high text-on-surface"} font-label-code text-label-code py-2 rounded-lg shadow-[2px_2px_0px_#000000]">
-      <span class="material-symbols-outlined text-[15px]" aria-hidden="true">play_arrow</span><span>[ ${t.label.toUpperCase()} ]</span>
-    </a>`;
-  return button(target, true) + (other ? button(other, false) : "");
+  const link = (t) =>
+    `<a href="${esc(t.url(prompt))}" target="_blank" rel="noopener noreferrer" ${t.copyFirst ? `data-action="copy-prompt" data-id="${esc(id)}"` : ""} class="c-link">Open in ${t.label} ↗</a>`;
+  return link(target) + (other ? link(other) : "");
 }
 
 const PROMPT_TABS = { writing: "Writing", work: "Work", learning: "Learning", life: "Everyday life", coding: "Coding" };
 
-// Card for prompts ("Prompts Library" screen).
+// Card for prompts.
 function promptCard(item, { why, ai } = {}) {
-  return `<article class="flex flex-col relative w-full pt-4">
-    <div class="absolute top-0 left-3 flex items-center gap-1.5 bg-primary px-3 py-0.5 rounded-t-lg shadow-[2px_0px_0px_#000000]">
-      <span class="material-symbols-outlined text-on-primary text-[14px]" aria-hidden="true">psychology</span>
-      <span class="font-label-code text-label-code text-on-primary font-bold uppercase tracking-wider">${esc((item.category ?? "prompt").toUpperCase())} // ${LEVEL_LABEL[item.level]}</span>
-    </div>
-    <div class="w-full bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] flex flex-col gap-space-sm">
-      <div class="flex items-start justify-between gap-space-xs mt-1">
-        <div class="flex flex-col min-w-0">
-          <h3 class="font-headline-sm text-headline-sm text-on-surface tracking-tight">${esc(item.name)}</h3>
-          <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">${esc(item.summary)}</p>
-        </div>
-        ${bookmarkButton(item)}
-      </div>
-      ${whyLine(why, ai)}
-      <div class="bg-surface-container-highest/80 rounded-lg p-space-sm">
-        <div class="flex items-center justify-between pb-1 mb-1">
-          <span class="font-label-code text-outline tracking-widest text-[9px]">PROMPT.MD</span>
-          <span class="font-label-sm text-label-sm text-primary">~${Math.ceil((item.prompt ?? "").length / 4)} TOKENS</span>
-        </div>
-        <p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-4 leading-relaxed whitespace-pre-line">${esc(item.prompt)}</p>
-      </div>
-      <div class="flex items-center gap-2 pt-1">
-        <button type="button" data-action="copy-prompt" data-id="${esc(item.id)}" class="press flex-1 flex items-center justify-center gap-1.5 bg-surface-container-high text-on-surface font-label-code text-label-code py-2 rounded-lg shadow-[2px_2px_0px_#000000]">
-          <span class="material-symbols-outlined text-[15px]" aria-hidden="true">content_copy</span><span>[ COPY PROMPT ]</span>
-        </button>
-        ${openInLink(item.prompt ?? "", item.id)}
-      </div>
+  const kind = `${PROMPT_TABS[item.category] ?? "Prompt"} prompt`;
+  return `<article class="c-card">
+    <div class="c-top"><span>${esc(kind)} · ${LEVEL_LABEL[item.level]}</span><span class="c-meta">about <span class="fig">${num(Math.ceil((item.prompt ?? "").length / 4))}</span> tokens</span></div>
+    ${cardHead(item, "")}
+    <p class="c-summary">${esc(item.summary)}</p>
+    ${whyLine(why, ai)}
+    <p class="c-prompt">${esc(item.prompt)}</p>
+    <div class="c-actions">
+      <button type="button" data-action="copy-prompt" data-id="${esc(item.id)}" class="c-btn">Copy prompt</button>
+      ${openInLink(item.prompt ?? "", item.id)}
     </div>
   </article>`;
 }
@@ -511,33 +485,41 @@ function card(item, extra = {}) {
   return toolCard(item, extra);
 }
 
-function loadingBlock(label = "QUERYING INDEX") {
-  return `<div class="bg-surface-container-lowest p-space-sm rounded shadow-[2px_2px_0px_#000000] font-label-code text-label-code text-on-surface-variant flex items-center gap-2">
-    <span class="material-symbols-outlined text-primary text-[16px] animate-spin" style="animation-duration:1.6s" aria-hidden="true">sync</span>${esc(label)}...
-  </div>`;
+/** A quiet working line for something slow that isn't the page itself (AI ranking). */
+function loadingBlock(label = "Searching the index") {
+  return `<p class="c-loading" role="status"><span class="material-symbols-outlined text-[16px] animate-spin motion-reduce:animate-none" style="animation-duration:1.6s" aria-hidden="true">sync</span>${esc(label)}…</p>`;
 }
 
 /** Card-shaped placeholders, so a slow page keeps its layout instead of jumping when results arrive. */
 function skeletonCards(label = "Loading", n = 4) {
   const bar = (size) => `<div class="${size} rounded bg-surface-container-high"></div>`;
-  const one = `<div class="bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] flex flex-col gap-space-sm">
-    <div class="flex items-center gap-space-sm">${bar("w-8 h-8")}${bar("w-2/5 h-4")}</div>
+  const one = `<div class="c-card">
+    ${bar("w-1/3 h-3")}
+    ${bar("w-2/5 h-5")}
     ${bar("w-full h-3")}${bar("w-4/5 h-3")}
-    <div class="flex gap-2 pt-1">${bar("w-16 h-5")}${bar("w-12 h-5")}</div>
+    <div class="flex gap-2 pt-1">${bar("w-24 h-8")}${bar("w-16 h-8")}</div>
   </div>`;
   return `<div role="status" aria-label="${esc(label)}" class="animate-pulse motion-reduce:animate-none">${cardGrid(one.repeat(n))}</div>`;
 }
 
+/** A failure inside the block that failed: what went wrong, and a way to try again. */
 function errorBlock(message) {
-  return `<div role="alert" class="bg-error-container text-on-error-container p-space-sm rounded shadow-[2px_2px_0px_#000000] font-label-code text-label-code">ERR: ${esc(message)}</div>`;
+  return `<div role="alert" class="c-panel c-error">
+    <p>Couldn't load this: ${esc(message)}</p>
+    <button type="button" data-action="retry" class="c-link">Try again</button>
+  </div>`;
 }
 
+/** An empty result keeps its frame: one sentence, then where to go next. */
 function emptyBlock(message, hint = "") {
-  return `<div class="bg-surface-container-lowest p-space-md rounded shadow-[2px_2px_0px_#000000] flex flex-col gap-1">
-    <p class="font-label-code text-label-code text-secondary">&gt; 0 RESULTS</p>
-    <p class="font-body-md text-body-md text-on-surface-variant">${esc(message)}</p>
+  return `<div class="c-panel c-empty">
+    <p>${esc(message)}</p>
     ${hint}
   </div>`;
+}
+
+function textLink(label, href) {
+  return `<a href="${esc(href)}" class="c-link">${esc(label)}</a>`;
 }
 
 // What each chat app can take, for empty states when the picked agent can't use a whole category.
@@ -550,16 +532,21 @@ const AGENT_CAN_USE = {
 
 function noItemsBlock() {
   const limits = state.agent !== "all" && AGENT_CAN_USE[state.agent];
-  return emptyBlock(limits ? `Nothing here for ${agentShort(state.agent)}. ${limits}` : "No items with that filter.", `<a href="#/prompts" class="font-label-code text-label-code text-primary pt-1">[ BROWSE PROMPTS ]</a>`);
+  return emptyBlock(limits ? `Nothing here for ${agentShort(state.agent)}. ${limits}` : "Nothing matches that filter.", textLink("Browse prompts", "#/prompts"));
+}
+
+/** A notice that sits above results: what a filter is hiding, or a question from the AI. */
+function noticeBlock(html) {
+  return `<div class="c-panel c-notice">${html}</div>`;
 }
 
 /** Card list: one column on phones, two side by side on desktop. */
 function cardGrid(html) {
-  return `<div class="grid grid-cols-1 lg:grid-cols-2 gap-space-lg items-start">${html}</div>`;
+  return `<div class="c-grid">${html}</div>`;
 }
 
 function page(inner) {
-  return `<div class="flex flex-col w-full px-space-md space-y-space-lg">${inner}</div>`;
+  return `<div class="xp w-full px-space-md">${inner}</div>`;
 }
 
 // ---------- views ----------
@@ -591,9 +578,9 @@ const INDEX_CELLS = [
   { type: "skill", label: "Agent skills", note: "Teach your AI new tricks", href: () => hrefWith("skills", { type: "skill" }) },
   { type: "plugin", label: "Plugins", note: "Bundles for Claude Code and more", href: () => hrefWith("skills", { type: "plugin" }) },
   { type: "mcp", label: "MCP servers", note: "Connect apps and data", href: () => hrefWith("skills", { type: "mcp" }) },
+  { type: "connector", label: "Connectors", note: "Paste a URL into Claude or ChatGPT", href: () => "#/connectors" },
   { type: "prompt", label: "Prompts", note: "Copy-paste instructions", href: () => "#/prompts" },
   { type: "repo", label: "GitHub repos", note: "Open-source stacks", href: () => "#/repos" },
-  { type: "starter", label: "Starter kit", note: "New here? Start with these", href: () => "#/starter" },
 ];
 const TYPE_WORD = { skill: "skill", plugin: "plugin", mcp: "MCP server", prompt: "prompt", repo: "repo" };
 
@@ -617,9 +604,14 @@ function itemHref(item) {
 async function viewItem(params) {
   const data = await api(hrefApi("/api/items", { ids: params.get("id") ?? "" }));
   const item = remember(data.items)[0];
-  if (!item) return page(emptyBlock("That item isn't in the index any more.", `<a href="#/explore" class="font-label-code text-label-code text-primary pt-1">[ BACK TO EXPLORE ]</a>`));
+  if (!item) return page(emptyBlock("That item isn't in the index any more.", textLink("Back to explore", "#/explore")));
   document.title = `${item.name} · AI Deck`;
-  return page(card(item));
+  const tag = item.tags[0];
+  const like = tag ? await api(hrefApi("/api/items", { type: item.type, tag, sort: "trust", limit: 5 })) : { items: [] };
+  const related = remember(like.items.filter((i) => i.id !== item.id)).slice(0, 4);
+  return page(`<h1 class="sr-only">${esc(item.name)}</h1>
+    <div class="c-item">${card(item)}</div>
+    ${related.length ? `<section class="xp-section" aria-labelledby="related">${sectionHeader(`<span id="related">More ${esc(TYPE_META[item.type].label.toLowerCase())}s for #${esc(tag)}</span>`, textLink("See all", hrefWith(item.type === "repo" ? "repos" : item.type === "prompt" ? "prompts" : "skills", item.type === "repo" || item.type === "prompt" ? {} : { tag })))}${cardGrid(related.map((i) => card(i)).join(""))}</section>` : ""}`);
 }
 
 /** Search links in a run; each separator travels with the link after it, so no line ends on a "·". */
@@ -629,7 +621,7 @@ function linkRun(queries) {
     .join(" ");
 }
 
-function risingRow(item) {
+function risingRow(item, { withSummary = false } = {}) {
   const t = item.trending;
   const gain = t?.estimated ? "new" : `+${t.weekly.toLocaleString("en-US")}`;
   const stars = item.stars != null ? item.stars.toLocaleString("en-US") : "—";
@@ -639,6 +631,7 @@ function risingRow(item) {
       <span class="name">${esc(item.name)}</span>
       <span class="meta">${esc([ownerOf(item), TYPE_WORD[item.type]].filter(Boolean).join(" · "))}<span class="phone-only"> · <span class="fig">${stars}</span> stars · trust <span class="fig">${trust}</span></span></span>
     </span>
+    ${withSummary ? `<span class="what desk-only">${esc(plain(item.summary || item.description))}</span>` : ""}
     <span class="num fig desk-only">${stars}</span>
     <span class="num fig gain" title="${t?.estimated ? "A young repo rising fast; the weekly figure is an estimate" : "Stars gained this week, from GitHub trending"}">${gain}</span>
     <span class="num fig desk-only">${trust}</span>
@@ -659,7 +652,7 @@ function trustRow(item) {
 
 async function viewExplore() {
   const stats = state.stats ?? (state.stats = await api("/api/stats"));
-  const c = { ...stats.counts, starter: STARTER_IDS.length };
+  const c = { ...stats.counts, connector: stats.connectors };
   const total = ["skill", "plugin", "mcp", "prompt", "repo"].reduce((sum, t) => sum + (c[t] ?? 0), 0);
   const updated = shortDate(stats.generatedAt);
 
@@ -679,19 +672,12 @@ async function viewExplore() {
   const title = `<div class="xp-title">
       <div>
         <h1>What do you want your AI to do?</h1>
-        <p class="xp-sub">Describe it in your own words. AI Deck searches <span class="fig">${total.toLocaleString("en-US")}</span> skills, plugins, MCP servers, prompts and repos, and shows how to install each one.</p>
+        <p class="xp-sub">Describe it in your own words. AI Deck searches <span class="fig">${total.toLocaleString("en-US")}</span> skills, plugins, MCP servers, prompts and repos, and shows how to install each one. New here? Start with the <a class="c-link" href="#/starter">starter kit</a>.</p>
       </div>
       ${updated ? `<p class="xp-stamp">Index updated ${esc(updated)}</p>` : ""}
     </div>`;
 
-  const search = `<form class="search-form xp-search" role="search">
-      <label>
-        <span class="sr-only">Search in plain English</span>
-        <input name="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Describe a task in plain English" aria-keyshortcuts="/ Control+K Meta+K" />
-        <kbd title="Press / or Ctrl+K to search from any page">${/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}</kbd>
-      </label>
-      <button type="submit" class="xp-btn">Search</button>
-    </form>
+  const search = `${searchConsole()}
     <p class="xp-try"><span class="lead">Try</span> ${linkRun(EXAMPLE_QUERIES)}</p>`;
 
   const index = `<section aria-labelledby="xp-index">
@@ -734,13 +720,13 @@ async function viewExplore() {
       </section>`
     : "";
 
-  return page(`<div class="xp">
+  return page(`
     ${title}
     ${search}
     ${index}
     <div class="xp-pair">${risingHtml}${trustHtml}</div>
     ${recent}
-  </div>`);
+  `);
 }
 
 /** API URL builder; scopes every listing and search to the agent picked in the header. */
@@ -757,18 +743,18 @@ function hrefApi(path, params) {
 async function viewSearch(params, token, { live = false } = {}) {
   const q = (params.get("q") ?? "").trim();
   const type = params.get("type") ?? "";
-  const typeTabs = [["", "All"], ["skill", "Skills"], ["plugin", "Plugins"], ["mcp", "MCP"], ["prompt", "Prompts"], ["repo", "Repos"]]
-    .map(([t, label]) => tabButton(label, { href: hrefWith("search", { q, type: t }), active: t === type }))
-    .join("");
-  const head = `${searchConsole({ value: q, type })}
-    <div class="overflow-x-auto no-scrollbar -mx-space-md px-space-md py-1"><div class="flex items-center gap-space-xs min-w-max">${typeTabs}</div></div>`;
+  const typeTabs = tabs(
+    [["", "All"], ["skill", "Skills"], ["plugin", "Plugins"], ["mcp", "MCP servers"], ["prompt", "Prompts"], ["repo", "Repos"]].map(([t, label]) => ({
+      label,
+      href: hrefWith("search", { q, type: t }),
+      active: t === type,
+    })),
+  );
+  const head = `<h1 class="sr-only">Search</h1>${searchConsole({ value: q, type })}${typeTabs}`;
 
   if (!q) {
     return page(`${head}
-      <div class="flex flex-col gap-space-xs">
-        <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Describe a task, for example:</span>
-        <div class="flex flex-wrap gap-2">${EXAMPLE_QUERIES.map((ex) => chip(ex, { href: hrefWith("search", { q: ex, type }) })).join("")}</div>
-      </div>`);
+      <p class="xp-try"><span class="lead">Try</span> ${linkRun(EXAMPLE_QUERIES)}</p>`);
   }
 
   if (!live) pushRecent(q); // half-typed words shouldn't fill the recent list
@@ -785,38 +771,33 @@ async function viewSearch(params, token, { live = false } = {}) {
     if (type) qs.set("type", type);
     const everyone = await api(`/api/search?${qs}`);
     if (everyone.total > Math.max(10, local.total * 3)) {
-      agentNote = `<div class="bg-surface-container-high rounded p-space-sm shadow-[2px_2px_0px_#000000] font-body-md text-body-md text-on-surface flex gap-2">
-        <span class="material-symbols-outlined text-secondary text-[18px]" aria-hidden="true">filter_alt</span>
-        <span>${local.total ? `Showing what works in ${esc(agentShort(state.agent))}.` : `Nothing here works in ${esc(agentShort(state.agent))}.`} ${esc(AGENT_CAN_USE[state.agent] ?? "")}
-        <button type="button" data-action="agent-all" class="text-primary font-bold underline underline-offset-2">See all ${everyone.total} results for other AIs</button></span>
-      </div>`;
+      agentNote = noticeBlock(`<p>${local.total ? `Showing what works in ${esc(agentShort(state.agent))}.` : `Nothing here works in ${esc(agentShort(state.agent))}.`} ${esc(AGENT_CAN_USE[state.agent] ?? "")}</p>
+        <button type="button" data-action="agent-all" class="c-link">See all <span class="fig">${num(everyone.total)}</span> results for other AIs</button>`);
     }
   }
 
   const correction = local.intent.corrected
-    ? `<p class="font-body-sm text-body-sm text-on-surface-variant">Showing results for <a href="${esc(hrefWith("search", { q: local.intent.corrected, type }))}" class="text-primary font-bold">${esc(local.intent.corrected)}</a></p>`
+    ? `<p class="c-note">Showing results for <a href="${esc(hrefWith("search", { q: local.intent.corrected, type }))}" class="c-link">${esc(local.intent.corrected)}</a></p>`
     : "";
-  const intentChips = local.intent.tags.length
-    ? `<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar lg:flex-wrap lg:overflow-visible"><span class="font-label-code text-label-sm text-on-surface-variant tracking-widest uppercase shrink-0">UNDERSTOOD:</span>${local.intent.tags.slice(0, 6).map((t) => `<span class="shrink-0 px-2 py-0.5 bg-surface-container-high text-primary font-label-code text-label-sm rounded">#${esc(t)}</span>`).join("")}</div>`
-    : "";
+  const understood = local.intent.tags.length ? `<p class="c-note">Understood as ${local.intent.tags.slice(0, 6).map((t) => `<span class="c-tagword">#${esc(t)}</span>`).join(" ")}</p>` : "";
 
   const body = local.results.length
-    ? `<div id="ai-slot">${state.ai.enabled === false ? "" : loadingBlock(`${(state.ai.provider ?? "AI").toUpperCase()} IS RANKING THE BEST MATCHES`)}</div>
-       <div class="flex flex-col gap-space-lg" id="local-results">
-         ${sectionHeader(`Index Matches // ${local.total}`, `<span class="font-label-code text-label-code text-on-surface-variant">SHOWING ${local.results.length} OF ${local.total}</span>`)}
+    ? `<div id="ai-slot">${state.ai.enabled === false ? "" : loadingBlock(`${state.ai.provider ?? "AI"} is ranking the best matches`)}</div>
+       <section class="xp-section" id="local-results" aria-labelledby="matches">
+         ${sectionHeader(`<span id="matches">Matches</span>`, `<span class="xp-stamp">Showing <span class="fig">${num(local.results.length)}</span> of <span class="fig">${num(local.total)}</span></span>`)}
          ${trustLegend()}
          ${cardGrid(local.results.map((r) => card(r.item, { why: r.why })).join(""))}
          ${showMoreLink("search", params, local.results.length, local.total)}
-       </div>`
+       </section>`
     : emptyBlock(
         official || easy
           ? "Nothing matched with these filters. Try turning off Official only or Easy setup."
-          : "Nothing matched that yet. Try describing the task differently, e.g. what you want to happen rather than a product name.",
-        `<div class="flex flex-wrap gap-2 pt-1">${EXAMPLE_QUERIES.slice(0, 3).map((ex) => chip(ex, { href: hrefWith("search", { q: ex }) })).join("")}</div>`,
+          : "Nothing matched that yet. Try describing the task differently: what you want to happen, rather than a product name.",
+        `<p class="xp-try"><span class="lead">Try</span> ${linkRun(EXAMPLE_QUERIES.slice(0, 3))}</p>`,
       );
 
   return {
-    html: page(`${head}${filterBar("search", params)}${agentNote}${correction}${intentChips}${body}`),
+    html: page(`${head}${filterBar("search", params)}${agentNote}${correction}${understood}${body}`),
     // Phase 2, once the page is in the DOM: ask the AI to rerank and explain, then patch #ai-slot.
     // Not on every keystroke: AI ranking costs a model call, so it waits for Enter.
     after: () => !live && local.results.length && enhanceWithAi(q, type, token, params),
@@ -835,15 +816,16 @@ async function enhanceWithAi(q, type, token, params) {
       return;
     }
     remember(ranked.results.map((r) => r.item));
+    const provider = esc(ranked.provider ?? "AI");
     const clarify = ranked.clarify
-      ? `<div class="bg-surface-container-high rounded p-space-sm shadow-[2px_2px_0px_#000000] font-body-md text-body-md text-on-surface flex gap-2"><span class="material-symbols-outlined text-secondary text-[18px]" aria-hidden="true">help</span><span><span class="font-label-code text-label-code text-secondary block">${esc((ranked.provider ?? "AI").toUpperCase())} ASKS</span>${esc(ranked.clarify)} <span class="text-on-surface-variant">Add that to your search for sharper results.</span></span></div>`
+      ? noticeBlock(`<p><strong>${provider} asks:</strong> ${esc(ranked.clarify)} Add that to your search for sharper results.</p>`)
       : "";
     slot.innerHTML = ranked.results.length
-      ? `<div class="flex flex-col gap-space-lg pb-space-lg">
-          ${sectionHeader("Best Picks", `<span class="font-label-code text-label-code text-primary">[ ${esc((ranked.provider ?? "AI").toUpperCase())}_RANKED ]</span>`)}
+      ? `<section class="xp-section" aria-labelledby="best-picks">
+          ${sectionHeader(`<span id="best-picks">Best picks</span>`, `<span class="xp-stamp">Ranked by ${provider}</span>`)}
           ${clarify}
           ${cardGrid(ranked.results.map((r) => card(r.item, { why: r.why, ai: true })).join(""))}
-        </div>`
+        </section>`
       : clarify;
   } catch (error) {
     if (token === state.renderToken) slot.innerHTML = "";
@@ -856,6 +838,8 @@ function pushRecent(q) {
   writeStore("aideck.recent", state.recent);
 }
 
+const submitButton = `<button type="button" data-action="submit-open" class="c-btn">Submit a tool</button>`;
+
 async function viewSkills(params) {
   const type = ["skill", "plugin", "mcp"].includes(params.get("type")) ? params.get("type") : "";
   const tag = params.get("tag") ?? "";
@@ -865,49 +849,98 @@ async function viewSkills(params) {
   const keep = { official: params.get("official") ?? "", easy: params.get("easy") ?? "", sort: sort === "trust" ? "" : sort };
   const data = await api(hrefApi("/api/items", { type, types: type ? [] : ["skill", "plugin", "mcp"], tag, sort, limit, official: keep.official, easy: keep.easy }));
   remember(data.items);
+  const c = state.stats?.counts ?? {};
 
-  const tabs = [["", "All"], ["skill", "Agent Skills"], ["plugin", "Plugins"], ["mcp", "MCP Servers"]]
-    .map(([t, label]) => tabButton(label, { href: hrefWith("skills", { ...keep, type: t, tag }), active: t === type }))
-    .join("");
-  const tagChips = data.tags.map(({ tag: t }) => chip(`[ ${t} ]`, { href: hrefWith("skills", { ...keep, type, tag: t === tag ? "" : t }), active: t === tag })).join("");
+  const typeTabs = tabs(
+    [["", "All", (c.skill ?? 0) + (c.plugin ?? 0) + (c.mcp ?? 0)], ["skill", "Agent skills", c.skill], ["plugin", "Plugins", c.plugin], ["mcp", "MCP servers", c.mcp]].map(([t, label, count]) => ({
+      label,
+      count,
+      href: hrefWith("skills", { ...keep, type: t, tag }),
+      active: t === type,
+    })),
+  );
+  const tagChips = data.tags.map(({ tag: t }) => chip(t, { href: hrefWith("skills", { ...keep, type, tag: t === tag ? "" : t }), active: t === tag })).join("");
 
-  return `
-  <div class="px-space-md py-space-xs bg-surface-container-lowest flex items-center justify-between text-on-surface-variant font-label-code text-label-code">
-    <span class="flex items-center gap-space-xs"><span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" aria-hidden="true"></span><span class="text-primary uppercase tracking-wider">DECK_NET://ONLINE</span></span>
-    <span class="font-label-sm text-label-sm">SHOWING: <strong class="text-on-surface">${data.total}</strong></span>
-  </div>
-  ${page(`
-    <div class="pt-space-sm">${searchConsole({ placeholder: "grep skills, plugins, mcp in plain English...", type })}</div>
-    <div class="overflow-x-auto no-scrollbar -mx-space-md px-space-md"><div class="flex items-center gap-space-xs min-w-max pb-1">${tabs}</div></div>
-    <div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar pb-1 lg:flex-wrap lg:overflow-visible">
-      <span class="text-on-surface-variant font-label-code text-label-sm tracking-widest uppercase shrink-0">TAGS:</span>${tagChips}
-    </div>
-    ${filterBar("skills", params, { sorts: [["trust", "TRUST"], ["updated", "RECENTLY UPDATED"], ["stars", "STARS"]] })}
+  return page(`
+    ${titleRow("Skills, plugins and MCP servers", `Add-ons that teach your AI new tasks or connect it to your apps and data. <span class="fig">${num(data.total)}</span> ${tag ? `tagged #${esc(tag)}` : "in this view"}.`, submitButton)}
+    ${searchConsole({ placeholder: "Search skills, plugins and MCP servers", type })}
+    ${typeTabs}
+    ${chipRow("Topics", tagChips)}
+    ${filterBar("skills", params, { sorts: [["trust", "Trust"], ["updated", "Recently updated"], ["stars", "Stars"]] })}
     ${trustLegend()}
     ${data.items.length ? cardGrid(data.items.map((item) => card(item)).join("")) : noItemsBlock()}
-    ${data.total > data.items.length ? `<a href="${esc(hrefWith("skills", { ...keep, type, tag, limit: limit + PAGE_SIZE }))}" class="press block text-center py-2 bg-surface-container-high text-primary font-label-code text-label-code rounded shadow-[2px_2px_0px_#000000]">[ LOAD MORE // ${data.total - data.items.length} LEFT ]</a>` : ""}
-    <div class="bg-surface-container-lowest p-space-sm rounded shadow-[2px_2px_0px_#000000] flex flex-col gap-1 font-label-code text-label-sm text-on-surface-variant">
-      <span class="text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" aria-hidden="true">code</span>SYS_AUDIT_LOG</span>
-      <p><span class="text-secondary">&gt;</span> trust scores use stars, recency, license and publisher only</p>
-      <p><span class="text-primary">&gt;</span> installs are copy-only: nothing runs without you</p>
-    </div>
-  `)}
-  <div class="fixed bottom-20 right-4 z-40 sm:right-[max(1rem,calc(50vw-21rem))]">
-    <button type="button" data-action="submit-open" class="press px-4 py-2.5 bg-secondary text-on-secondary font-label-code text-label-code rounded shadow-[4px_4px_0px_#000000] hover:bg-secondary-fixed flex items-center gap-2 uppercase font-bold tracking-wider">
-      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">add_box</span><span>+ Submit</span>
-    </button>
+    ${data.total > data.items.length ? `<a href="${esc(hrefWith("skills", { ...keep, type, tag, limit: limit + PAGE_SIZE }))}" class="c-more">Show ${Math.min(PAGE_SIZE, data.total - data.items.length)} more <span class="fig">· ${num(data.total - data.items.length)} left</span></a>` : ""}
+  `);
+}
+
+/** Copies a connector's URL; the URL is shown too, so it can be read and checked before pasting. */
+function connectorRow(item) {
+  const url = connectorUrl(item);
+  return `<div class="xp-row c-conn-row">
+    <a class="min-w-0" href="${esc(itemHref(item))}">
+      <span class="name">${esc(item.name)}</span>
+      <span class="meta">${esc([ownerOf(item), item.official ? "official" : ""].filter(Boolean).join(" · ") || "Community listing")}</span>
+    </a>
+    <code class="c-url" title="${esc(url)}">${esc(url)}</code>
+    <span class="num fig">${item.trust?.score ?? "—"}</span>
+    <button type="button" data-action="copy-url" data-id="${esc(item.id)}" class="c-btn c-btn-sm" aria-label="Copy the URL for ${esc(item.name)}">Copy URL</button>
   </div>`;
+}
+
+async function viewConnectors(params) {
+  const tag = params.get("tag") ?? "";
+  const limit = Number(params.get("limit")) || PAGE_SIZE;
+  const official = params.get("official") ?? "";
+  const data = await api(hrefApi("/api/items", { type: "mcp", remote: "1", tag, official, sort: "trust", limit }));
+  remember(data.items);
+  const steps = (app, list) => `<div class="c-panel c-howto"><h3>In ${app}</h3><ol class="c-steps">${list.map((s) => `<li>${s}</li>`).join("")}</ol></div>`;
+  const tagChips = data.tags.map(({ tag: t }) => chip(t, { href: hrefWith("connectors", { official, tag: t === tag ? "" : t }), active: t === tag })).join("");
+
+  return page(`
+    ${titleRow("Connectors", `Remote MCP servers you add to the Claude app or ChatGPT by pasting a URL. Nothing to install; the server runs online. <span class="fig">${num(state.stats?.connectors ?? data.total)}</span> in the index.`)}
+    <section class="xp-section" aria-labelledby="howto">
+      ${sectionHeader(`<span id="howto">How to add one</span>`)}
+      <div class="c-howto-pair">
+        ${steps("Claude", ["Open <strong>Settings → Connectors</strong>", "Choose <strong>Add custom connector</strong>", "Paste the connector's URL and sign in if it asks"])}
+        ${steps("ChatGPT", ["Open <strong>Settings → Apps &amp; Connectors → Advanced settings</strong> and turn on <strong>Developer mode</strong>", "Back in Apps &amp; Connectors, choose <strong>Create</strong> and name it", "Paste the connector's URL"])}
+      </div>
+    </section>
+    <section class="xp-section xp-rising" aria-labelledby="conn-list">
+      ${sectionHeader(`<span id="conn-list">${tag ? `Connectors tagged #${esc(tag)}` : "Most trusted connectors"}</span>`, `<span class="xp-stamp"><span class="fig">${num(data.total)}</span> listed</span>`)}
+      ${chipRow("Show", chip("Official only", { href: hrefWith("connectors", { tag, official: official ? "" : "1" }), active: official === "1" }))}
+      ${chipRow("Topics", tagChips)}
+      <p class="c-note">Only add a connector you trust: it can read what you share with it in chat. Trust (0–100) comes from public signals, not a security review.</p>
+      ${
+        data.items.length
+          ? `<div class="xp-panel c-conn">
+              <div class="xp-row xp-cols c-conn-row" aria-hidden="true"><span>Name</span><span>URL</span><span class="num">Trust</span><span></span></div>
+              ${data.items.map(connectorRow).join("")}
+            </div>`
+          : state.agent !== "all" && !["claude", "chatgpt"].includes(state.agent) && AGENT_CAN_USE[state.agent]
+            ? noItemsBlock()
+            : emptyBlock("No connectors with that filter.", textLink("Show all connectors", "#/connectors"))
+      }
+      ${showMoreLink("connectors", params, data.items.length, data.total)}
+    </section>
+  `);
 }
 
 async function viewTrending(params) {
   const limit = Number(params.get("limit")) || PAGE_SIZE;
   const data = await api(hrefApi("/api/items", { sort: "trending", limit }));
   remember(data.items);
-  const updated = state.stats?.trendingAt ? `UPDATED ${ago(state.stats.trendingAt).toUpperCase()}` : "";
+  const updated = state.stats?.trendingAt ? `<p class="xp-stamp">Read from GitHub ${esc(ago(state.stats.trendingAt))}</p>` : "";
   return page(`
-    ${sectionHeader(`Trending // ${data.total}`, `<span class="font-label-code text-label-code text-on-surface-variant">${esc(updated)}</span>`)}
-    <p class="font-body-sm text-body-sm text-outline -mt-space-sm">AI repos gaining the most GitHub stars this week, read from GitHub's trending pages. "New" marks young repos rising fast, where the weekly number is an estimate. Stars show attention, not quality: check the trust score and the code before you install.</p>
-    ${data.items.length ? cardGrid(data.items.map((item) => card(item)).join("")) : noItemsBlock()}
+    ${titleRow("Trending this week", `AI repos gaining the most GitHub stars this week, from GitHub's trending pages. Stars show attention, not quality: check the trust score and the code before you install.`, updated)}
+    ${
+      data.items.length
+        ? `<section class="xp-rising with-summary" aria-label="Trending repos"><div class="xp-panel">
+            <div class="xp-row xp-cols" aria-hidden="true"><span>Name</span><span class="desk-only">What it is</span><span class="num">Stars</span><span class="num">This week</span><span class="num">Trust</span></div>
+            ${data.items.map((item) => risingRow(item, { withSummary: true })).join("")}
+          </div></section>`
+        : noItemsBlock()
+    }
+    <p class="c-note">"New" marks a young repo rising fast, where the weekly number is an estimate.</p>
     ${showMoreLink("trending", params, data.items.length, data.total)}
   `);
 }
@@ -918,23 +951,13 @@ async function viewRepos(params) {
   const data = await api(hrefApi("/api/items", { type: "repo", sort, language, limit: 60 }));
   remember(data.items);
   const sorts = [["stars", "Most stars"], ["trending", "Trending"], ["updated", "Recently pushed"], ["name", "A–Z"]];
+  const langChips = [["", "All"], ...data.languages.map((l) => [l, l])].map(([l, label]) => chip(label, { href: hrefWith("repos", { sort, language: l }), active: l === language })).join("");
   return page(`
-    <div class="flex items-center justify-between bg-surface-container-high px-space-sm py-space-xs rounded shadow-[2px_2px_0px_#000000]">
-      <span class="flex items-center gap-space-xs"><span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" aria-hidden="true"></span><span class="font-label-code text-label-code text-primary uppercase">RADAR_STREAM</span></span>
-      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">INDEX: GITHUB_AI // ${data.total}</span>
-    </div>
-    ${searchConsole({ placeholder: "find repos: what should it help you build?", type: "repo" })}
-    <div class="flex flex-col gap-space-xs">
-      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">[ SORT ]</span>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-gutter-sm">${sorts
-        .map(([s, label]) => {
-          const active = s === sort;
-          return `<a href="${esc(hrefWith("repos", { sort: s, language }))}" class="press py-1 px-space-xs text-center ${active ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"} font-label-code text-label-code uppercase rounded shadow-[2px_2px_0px_#000000]"${active ? ' aria-current="true"' : ""}>[ ${label} ]</a>`;
-        })
-        .join("")}</div>
-    </div>
-    ${data.languages.length ? `<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar pb-space-sm lg:flex-wrap lg:overflow-visible"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase shrink-0 mr-space-xs">[LANG]:</span>${[["", "All"], ...data.languages.map((l) => [l, l])].map(([l, label]) => chip(label, { href: hrefWith("repos", { sort, language: l }), active: l === language })).join("")}</div>` : ""}
-    ${data.items.length ? cardGrid(data.items.map((item) => repoCard(item)).join("")) : emptyBlock("No repos for that language.")}
+    ${titleRow("GitHub repos", `Open-source AI projects to clone and run. <span class="fig">${num(data.total)}</span> ${language ? `in ${esc(language)}` : "in the index"}${data.total > data.items.length ? `, top <span class="fig">${data.items.length}</span> shown` : ""}.`)}
+    ${searchConsole({ placeholder: "What should the repo help you build?", type: "repo" })}
+    ${tabs(sorts.map(([s, label]) => ({ label, href: hrefWith("repos", { sort: s, language }), active: s === sort })))}
+    ${data.languages.length ? chipRow("Language", langChips) : ""}
+    ${data.items.length ? cardGrid(data.items.map((item) => repoCard(item)).join("")) : emptyBlock("No repos in that language.", textLink("Show all languages", hrefWith("repos", { sort })))}
   `);
 }
 
@@ -942,23 +965,21 @@ async function viewPrompts(params) {
   const category = Object.hasOwn(PROMPT_TABS, params.get("category")) ? params.get("category") : "";
   const data = await api(hrefApi("/api/items", { type: "prompt", category, sort: "name", limit: 100 }));
   remember(data.items);
-  const tabs = [["", "All"], ...Object.entries(PROMPT_TABS)]
-    .map(([c, label]) => tabButton(label, { href: hrefWith("prompts", { category: c }), active: c === category }))
-    .join("");
+  const categoryTabs = tabs([["", "All"], ...Object.entries(PROMPT_TABS)].map(([c, label]) => ({ label, href: hrefWith("prompts", { category: c }), active: c === category })));
   return page(`
-    ${searchConsole({ placeholder: "grep prompts: what should your AI write or do?", type: "prompt" })}
-    <div class="overflow-x-auto no-scrollbar -mx-space-md px-space-md py-1"><div class="flex items-center gap-1.5 min-w-max">${tabs}</div></div>
-    <div class="flex items-center justify-between px-space-xs font-label-sm text-label-sm text-on-surface-variant">
-      <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary inline-block" aria-hidden="true"></span><span class="uppercase tracking-wider">INDEX: ${String(data.total).padStart(2, "0")}_PROMPT_BLOCKS</span></span>
-      <span class="font-label-code text-label-code text-secondary">● ${state.level === "beginner" ? "EASIEST FIRST" : "ALL LEVELS"}</span>
-    </div>
-    ${cardGrid(
-      data.items
-        .sort((a, b) => (state.level === "beginner" ? levelRank(a) - levelRank(b) : 0))
-        .map((item) => promptCard(item))
-        .join(""),
-    )}
-    <div class="pt-2 pb-4 flex items-center justify-center gap-2"><span class="h-1 w-6 bg-surface-container-high rounded-full"></span><span class="font-label-code text-label-code text-outline">// END OF DECK RECORD //</span><span class="h-1 w-6 bg-surface-container-high rounded-full"></span></div>
+    ${titleRow("Prompts", `Ready-made instructions to paste into any chat. <span class="fig">${num(data.total)}</span> ${category ? `for ${esc(PROMPT_TABS[category].toLowerCase())}` : "in all"}${state.level === "beginner" ? ", easiest first" : ""}.`)}
+    ${searchConsole({ placeholder: "What should your AI write or do?", type: "prompt" })}
+    ${categoryTabs}
+    ${
+      data.items.length
+        ? cardGrid(
+            data.items
+              .sort((a, b) => (state.level === "beginner" ? levelRank(a) - levelRank(b) : 0))
+              .map((item) => promptCard(item))
+              .join(""),
+          )
+        : emptyBlock("No prompts in this category yet.", textLink("Show all prompts", "#/prompts"))
+    }
   `);
 }
 
@@ -967,11 +988,13 @@ const levelRank = (item) => ({ beginner: 0, intermediate: 1, expert: 2 })[item.l
 async function viewSaved() {
   const ids = [...state.saved];
   if (!ids.length) {
-    return page(`${sectionHeader("Saved", "")}${emptyBlock("Nothing saved yet. Tap the bookmark on any card to keep it here.", `<a href="#/explore" class="font-label-code text-label-code text-primary pt-1">[ BROWSE THE DECK ]</a>`)}`);
+    const picks = remember((await api(hrefApi("/api/items", { ids: STARTER_IDS.join(",") }))).items);
+    return page(`${titleRow("Saved", "Kept on this device.")}${emptyBlock("Nothing saved yet. Tap the bookmark on any card to keep it here.", textLink("Browse the index", "#/explore"))}
+      <section class="xp-section" aria-labelledby="picks">${sectionHeader(`<span id="picks">Good first picks</span>`, textLink("Starter kit", "#/starter"))}${cardGrid(picks.map((item) => card(item)).join(""))}</section>`);
   }
   const data = await api(hrefApi("/api/items", { ids: ids.join(",") }));
   remember(data.items);
-  return page(`${sectionHeader(`Saved // ${data.items.length}`, `<span class="font-label-code text-label-code text-on-surface-variant">THIS DEVICE</span>`)}
+  return page(`${titleRow("Saved", `<span class="fig">${num(data.items.length)}</span> kept on this device.`)}
     ${cardGrid(data.items.map((item) => card(item)).join(""))}`);
 }
 
@@ -979,11 +1002,10 @@ async function viewStarter() {
   const data = await api(hrefApi("/api/items", { ids: STARTER_IDS.join(",") }));
   remember(data.items);
   return page(`
-    <div class="bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] space-y-1">
-      <span class="font-label-code text-label-code text-primary">[ STARTER_KIT ]</span>
-      <h1 class="font-headline-md text-headline-md text-on-surface">New to AI add-ons?</h1>
-      <p class="font-body-md text-body-md text-on-surface-variant"><strong class="text-on-surface">Skills</strong> teach an AI agent how to do a task. <strong class="text-on-surface">MCP servers</strong> connect it to apps and data (they work in Claude, ChatGPT, Gemini, Cursor and more). <strong class="text-on-surface">Plugins</strong> bundle several of these into one install. These are easy, well-maintained picks to start with.</p>
-    </div>
+    ${titleRow(
+      "New to AI add-ons?",
+      `<strong>Skills</strong> teach an AI agent how to do a task. <strong>MCP servers</strong> connect it to apps and data, and work in Claude, ChatGPT, Gemini, Cursor and more. <strong>Plugins</strong> bundle several of these into one install. These <span class="fig">${data.items.length}</span> are easy, well-maintained picks to start with.`,
+    )}
     ${cardGrid(data.items.map((item) => card(item)).join(""))}
   `);
 }
@@ -992,6 +1014,7 @@ const VIEWS = {
   explore: { label: "Explore", nav: "explore", render: viewExplore },
   search: { label: "Search", nav: null, render: viewSearch },
   skills: { label: "Skills", nav: "skills", render: viewSkills },
+  connectors: { label: "Connectors", nav: "connectors", render: viewConnectors },
   prompts: { label: "Prompts", nav: "prompts", render: viewPrompts },
   repos: { label: "Repos", nav: "repos", render: viewRepos },
   saved: { label: "Saved", nav: "saved", render: viewSaved },
@@ -1071,31 +1094,29 @@ function renderLevel() {
 
 function openSubmitModal() {
   $modalRoot.innerHTML = `
-  <div class="fixed inset-0 z-[55] bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-space-md" data-action="modal-backdrop">
-    <form id="submit-form" role="dialog" aria-modal="true" aria-labelledby="submit-title" class="bg-surface-container p-space-lg pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-space-lg rounded-t-lg sm:rounded shadow-[6px_6px_0px_#000000] w-full sm:max-w-sm flex flex-col gap-space-md">
+  <div class="fixed inset-0 z-[55] bg-background/80 flex items-end sm:items-center justify-center sm:p-space-md" data-action="modal-backdrop">
+    <form id="submit-form" role="dialog" aria-modal="true" aria-labelledby="submit-title" class="c-dialog p-space-lg pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-space-lg rounded-t-lg sm:rounded-lg w-full sm:max-w-md flex flex-col gap-4">
       <div data-sheet-handle class="sm:hidden -mt-space-sm -mx-space-lg pt-1 pb-space-xs flex justify-center touch-none cursor-grab" aria-hidden="true"><span class="w-10 h-1 rounded-full bg-outline-variant"></span></div>
       <div data-sheet-handle class="flex items-center justify-between touch-none sm:touch-auto">
-        <h2 id="submit-title" class="flex items-center gap-1.5 font-label-code text-label-code text-primary uppercase"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">upload</span>SUBMIT_TO_INDEX</h2>
-        <button type="button" data-action="modal-close" aria-label="Close" class="hit w-8 h-8 flex items-center justify-center bg-surface-container-high text-on-surface hover:text-error"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">close</span></button>
+        <h2 id="submit-title">Submit a tool</h2>
+        <button type="button" data-action="modal-close" aria-label="Close" class="c-icon hit"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span></button>
       </div>
-      <label class="flex flex-col gap-space-xs">
-        <span class="font-label-code text-label-sm text-on-surface-variant uppercase">Repo or manifest URL</span>
-        <input name="url" required type="url" pattern="https://.+" placeholder="https://github.com/org/mcp-server" class="bg-surface-container-low px-3 py-2 font-body-sm text-body-sm text-on-surface rounded shadow-[2px_2px_0px_#000000] focus:outline-none focus:shadow-[2px_2px_0px_#10b981]" />
+      <p class="c-note">Know a skill, plugin, MCP server, prompt or repo we're missing? Send the link; it's checked before it's listed.</p>
+      <label class="c-field">Repo or manifest URL
+        <input name="url" required type="url" pattern="https://.+" placeholder="https://github.com/org/mcp-server" />
       </label>
-      <label class="flex flex-col gap-space-xs">
-        <span class="font-label-code text-label-sm text-on-surface-variant uppercase">Category</span>
-        <select name="category" class="bg-surface-container-low px-3 py-2 font-body-sm text-body-sm text-on-surface rounded shadow-[2px_2px_0px_#000000] focus:outline-none">
-          <option value="skill">Agent Skill</option><option value="plugin">Plugin</option><option value="mcp">MCP Server</option><option value="repo">GitHub Repo</option><option value="prompt">Prompt</option>
+      <label class="c-field">Kind
+        <select name="category">
+          <option value="skill">Agent skill</option><option value="plugin">Plugin</option><option value="mcp">MCP server</option><option value="repo">GitHub repo</option><option value="prompt">Prompt</option>
         </select>
       </label>
-      <label class="flex flex-col gap-space-xs">
-        <span class="font-label-code text-label-sm text-on-surface-variant uppercase">What does it help with? (optional)</span>
-        <textarea name="note" rows="2" maxlength="500" class="bg-surface-container-low px-3 py-2 font-body-sm text-body-sm text-on-surface rounded shadow-[2px_2px_0px_#000000] focus:outline-none"></textarea>
+      <label class="c-field">What does it help with? <span class="hint">Optional</span>
+        <textarea name="note" rows="2" maxlength="500"></textarea>
       </label>
-      <p id="submit-error" class="hidden font-label-code text-label-sm text-error"></p>
-      <div class="flex items-center justify-end gap-space-sm pt-space-xs">
-        <button type="button" data-action="modal-close" class="px-3 py-1.5 font-label-code text-label-code text-on-surface-variant uppercase">[ Cancel ]</button>
-        <button type="submit" class="press px-4 py-1.5 bg-primary text-on-primary font-label-code text-label-code uppercase font-bold shadow-[2px_2px_0px_#000000]">[ Submit ]</button>
+      <p id="submit-error" class="hidden c-warn"></p>
+      <div class="flex items-center justify-end gap-4 pt-1">
+        <button type="button" data-action="modal-close" class="c-link">Cancel</button>
+        <button type="submit" class="xp-btn">Submit</button>
       </div>
     </form>
   </div>`;
@@ -1193,16 +1214,16 @@ document.addEventListener("submit", async (event) => {
     // One request at a time: a double tap can't queue the same link twice (the server also dedupes by URL).
     if (button.disabled) return;
     button.disabled = true;
-    button.textContent = "[ SENDING... ]";
+    button.textContent = "Sending…";
     try {
       const res = await api("/api/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
       closeModal();
-      toast(res.duplicate ? "ALREADY IN THE QUEUE" : "QUEUED FOR NEXT INGEST // ACK");
+      toast(res.duplicate ? "That one is already in the queue" : "Thanks. It goes in with the next index update");
     } catch (error) {
       errorEl.textContent = error.message;
       errorEl.classList.remove("hidden");
       button.disabled = false;
-      button.textContent = "[ Submit ]";
+      button.textContent = "Submit";
     }
   }
 });
@@ -1216,7 +1237,7 @@ document.addEventListener("click", async (event) => {
     state.level = el.dataset.level;
     writeStore("aideck.level", state.level);
     renderLevel();
-    toast(state.level === "beginner" ? "MODE: NEW TO THIS" : "MODE: EXPERT");
+    toast(state.level === "beginner" ? "Explaining things for newcomers" : "Expert mode: less explaining");
     render();
     return;
   }
@@ -1239,14 +1260,21 @@ document.addEventListener("click", async (event) => {
         for (const tab of panel.parentElement.querySelectorAll('[data-action="install-tab"]')) {
           const on = tab.dataset.agent === el.dataset.agent;
           tab.setAttribute("aria-selected", String(on));
-          tab.classList.toggle("bg-primary", on);
-          tab.classList.toggle("text-on-primary", on);
-          tab.classList.toggle("bg-surface-container-high", !on);
-          tab.classList.toggle("text-on-surface-variant", !on);
+          tab.classList.toggle("is-active", on);
         }
       }
       break;
     }
+    case "copy-url": {
+      const url = item && connectorUrl(item);
+      if (!url) return;
+      await copyText(url);
+      flashCopied(el);
+      break;
+    }
+    case "retry":
+      render();
+      break;
     case "clone":
       if (!item?.repo) return;
       await copyText(`git clone https://github.com/${item.repo}.git`);
@@ -1255,15 +1283,15 @@ document.addEventListener("click", async (event) => {
     case "copy-prompt":
       if (!item) return;
       await copyText(item.prompt);
-      if (el.tagName === "A") toast("PROMPT COPIED: PASTE IT INTO THE CHAT");
+      if (el.tagName === "A") toast("Prompt copied: paste it into the chat");
       else flashCopied(el);
       break;
     case "save": {
       if (!item) return;
       const on = !state.saved.has(item.id);
       setSaved(item, on);
-      if (on) toast("SAVED TO COLLECTION");
-      else toast("REMOVED FROM SAVED", () => setSaved(item, true));
+      if (on) toast("Saved");
+      else toast("Removed from saved", () => setSaved(item, true));
       break;
     }
     case "toast-undo": {
@@ -1334,7 +1362,7 @@ $agentSelect.addEventListener("change", () => {
   state.agent = $agentSelect.value;
   state.installTab.clear();
   writeStore("aideck.agent", state.agent);
-  toast(state.agent === "all" ? "SHOWING: ALL AGENTS" : `SHOWING: ${agentShort(state.agent)}`);
+  toast(state.agent === "all" ? "Showing tools for every AI" : `Showing tools for ${agentShort(state.agent)}`);
   render();
 });
 

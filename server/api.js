@@ -94,6 +94,8 @@ export function createApi({ state, rerank, aiStatus, saveSubmission }) {
       if (category) items = items.filter((i) => i.category === category);
       if (url.searchParams.get("official") === "1") items = items.filter((i) => i.official);
       if (url.searchParams.get("easy") === "1") items = items.filter((i) => i.level === "beginner");
+      // Connectors: remote MCP servers, added to the Claude app or ChatGPT by URL (ChatGPT takes no others).
+      if (url.searchParams.get("remote") === "1") items = items.filter((i) => i.type === "mcp" && i.agents.includes("chatgpt"));
 
       const sorters = {
         trust: (a, b) => b.trust.score - a.trust.score || (b.stars ?? 0) - (a.stars ?? 0),

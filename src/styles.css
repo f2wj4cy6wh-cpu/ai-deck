@@ -112,7 +112,9 @@
   --mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
+/* One left edge with the header: 16px on phones and tablets, 12px from 1024px up. */
 .xp {
+  padding: 0 16px;
   font-family: var(--font);
   color: var(--text);
   display: flex;
@@ -379,6 +381,21 @@
 .xp-trust .xp-row {
   grid-template-columns: minmax(0, 1fr) 40px;
 }
+.xp-rising.with-summary .xp-row {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr) 88px 88px 56px;
+}
+.xp-row .what {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.c-item .c-card {
+  height: auto;
+}
 .xp-row .name {
   display: block;
   font-size: 14px;
@@ -390,7 +407,7 @@
 }
 .xp-row .meta {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 18px;
   color: var(--faint);
   overflow: hidden;
@@ -421,6 +438,11 @@
   color: var(--text);
 }
 
+@media (min-width: 1024px) {
+  .xp {
+    padding: 0 12px;
+  }
+}
 @media (max-width: 1023px) {
   .xp-strip {
     grid-template-columns: repeat(3, 1fr);
@@ -436,10 +458,6 @@
   }
 }
 @media (max-width: 640px) {
-  /* 12px from page() plus 4px: the 16px phone margin. */
-  .xp {
-    padding: 0 4px;
-  }
   .xp-title {
     display: block;
   }
@@ -449,6 +467,9 @@
   }
   .xp-stamp {
     margin-top: 4px;
+  }
+  .xp-title > .c-btn {
+    margin-top: 12px;
   }
   .xp-search kbd {
     display: none;
@@ -496,6 +517,562 @@
   }
   .xp-trust .xp-row {
     padding: 8px 16px;
+  }
+}
+
+/* ---- Shared components for every screen (same sheet as explore). ---- */
+.xp-section {
+  display: flex;
+  flex-direction: column;
+}
+.c-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--faint);
+}
+.c-note .c-link {
+  font-size: inherit;
+}
+.c-tagword {
+  color: var(--muted);
+}
+
+/* The 1px selection line, exactly as wide as the label, on the label's bottom edge. */
+.c-chip.is-active > span,
+.c-tabs a.is-active > span:first-child,
+.c-agent-tabs button.is-active > span {
+  position: relative;
+}
+.c-chip.is-active > span::after,
+.c-tabs a.is-active > span:first-child::after,
+.c-agent-tabs button.is-active > span::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: var(--accent);
+}
+
+/* Underline tabs on one full-width rule; they scroll inside their own row on a phone. */
+.c-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.c-tabs::-webkit-scrollbar {
+  display: none;
+}
+.c-tabs a {
+  flex: none;
+  padding: 10px 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color 120ms;
+}
+.c-tabs a:hover {
+  color: var(--text);
+}
+.c-tabs a.is-active {
+  color: var(--text);
+}
+.c-tabs a.is-active > span:first-child::after {
+  bottom: -13px;
+}
+.c-tab-count {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.c-chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.c-chiprow-label {
+  font-size: 14px;
+  color: var(--faint);
+  margin-right: 4px;
+}
+.c-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+}
+.c-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 400 14px var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms;
+}
+.c-chip:hover {
+  color: var(--text);
+  border-color: var(--control);
+}
+.c-chip.is-active {
+  color: var(--text);
+  border-color: var(--control);
+}
+
+/* Panels and cards: darker than the ground, a 1px edge, 6px corners. */
+.c-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.c-panel p {
+  margin: 0;
+}
+.c-panel strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.c-empty p {
+  color: var(--text);
+}
+.c-error p {
+  color: #ffb4ab;
+}
+.c-notice {
+  background: var(--raised);
+}
+/* Cards in one row share a bottom edge; only the actions sit at the foot of a stretched card. */
+.c-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+  align-items: stretch;
+}
+.c-card {
+  height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  font-family: var(--font);
+}
+.c-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--faint);
+}
+.c-official {
+  color: var(--muted);
+}
+.c-trust {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.c-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -4px;
+}
+.c-head h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.c-head h3 a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+}
+.c-meta {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--faint);
+}
+.c-summary {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text);
+}
+.c-why {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--raised);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.c-why-label {
+  color: var(--text);
+  font-weight: 500;
+}
+.c-why.is-ai .c-why-label {
+  color: var(--accent);
+}
+.c-facts {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted);
+}
+.c-dot {
+  margin: 0 6px;
+  color: var(--faint);
+}
+.c-gain,
+.c-gain .fig {
+  color: var(--accent);
+}
+.c-tags {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.c-tags a:hover {
+  color: var(--text);
+}
+.c-warn {
+  margin: 0;
+  font-size: 14px;
+  color: #ffb4ab;
+}
+.c-prompt {
+  margin: 0;
+  padding: 12px;
+  border-radius: 4px;
+  background: var(--raised);
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--muted);
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Install: a disclosure, agent tabs, the command as code. */
+.c-install summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.c-install summary::-webkit-details-marker {
+  display: none;
+}
+.c-install summary:hover {
+  color: var(--text);
+}
+.c-install summary .material-symbols-outlined {
+  transition: transform 160ms;
+}
+.c-install[open] summary .material-symbols-outlined {
+  transform: rotate(90deg);
+}
+.c-install-body,
+.c-install-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.c-install-text {
+  margin-top: 0;
+}
+.c-agent-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+}
+.c-agent-tabs button {
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font: 400 12px var(--font);
+  color: var(--faint);
+  cursor: pointer;
+}
+.c-agent-tabs button:hover,
+.c-agent-tabs button.is-active {
+  color: var(--text);
+}
+.c-agent-tabs button.is-active > span::after {
+  bottom: -7px;
+}
+.c-where {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--faint);
+}
+.c-code {
+  margin: 0;
+  padding: 12px;
+  border-radius: 4px;
+  background: var(--ground);
+  border: 1px solid var(--rule);
+  font: 12px/1.6 var(--mono);
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.c-steps {
+  margin: 0;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+  list-style: decimal;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--muted);
+}
+
+/* Actions: an outlined button for the card's job, text links for the rest. */
+.c-actions {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding-top: 4px;
+}
+.c-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--control);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: 500 14px var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+}
+.c-btn:hover {
+  background: var(--raised);
+  border-color: var(--faint);
+}
+.c-btn:active {
+  transform: translateY(1px);
+}
+.c-btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.c-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: 400 14px var(--font);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 1px solid transparent;
+  transition: color 120ms, border-color 120ms;
+}
+.c-link:hover,
+.c-link:focus-visible {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.c-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms;
+}
+.c-icon:hover {
+  color: var(--text);
+  border-color: var(--control);
+}
+.c-icon.is-on {
+  color: var(--accent);
+}
+.c-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text);
+  transition: background-color 120ms;
+}
+.c-more:hover {
+  background: var(--surface);
+}
+.c-more .fig {
+  color: var(--faint);
+  font-size: 12px;
+}
+.c-loading {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--faint);
+}
+
+/* Connectors: how to add one, then the list with each URL shown and copied. */
+.c-howto-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+  align-items: stretch;
+}
+.c-howto h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+.xp-rising .c-conn-row,
+.c-conn-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 48px 84px;
+}
+.c-url {
+  font: 13px var(--mono);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-section > .c-chiprow,
+.xp-section > .c-note {
+  margin-bottom: 12px;
+}
+
+/* Submit dialog: on a phone it's a bottom sheet. */
+.c-dialog {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  font-family: var(--font);
+  color: var(--text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.c-dialog h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.c-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.c-field input,
+.c-field select,
+.c-field textarea {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--control);
+  background: var(--surface);
+  color: var(--text);
+  font: 400 14px var(--font);
+}
+.c-field input:focus,
+.c-field select:focus,
+.c-field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.c-field .hint {
+  font-weight: 400;
+  color: var(--faint);
+}
+
+@media (max-width: 1023px) {
+  .c-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .c-howto-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .c-filters {
+    gap: 12px;
+  }
+  .c-chiprow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .c-chiprow::-webkit-scrollbar {
+    display: none;
+  }
+  .c-conn-row,
+  .xp-rising .c-conn-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 8px 16px;
+  }
+  .c-conn-row .c-url,
+  .c-conn-row > .num {
+    display: none;
+  }
+  .c-card {
+    padding: 16px;
   }
 }
 

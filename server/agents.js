@@ -75,6 +75,13 @@ function serverEntry(spec, { typeKey = null } = {}) {
   return entry;
 }
 
+/** The URL a remote MCP server is added by in the Claude app or ChatGPT (a "connector"); null if it runs locally. */
+export function connectorUrl(item) {
+  if (item.type !== "mcp") return null;
+  const spec = parseClaudeMcpAdd(item.install?.command);
+  return spec && spec.transport !== "stdio" ? spec.url : null;
+}
+
 /** Per-agent install instructions for an MCP server. */
 export function mcpInstalls(spec, claudeCommand) {
   const remote = spec.transport !== "stdio";

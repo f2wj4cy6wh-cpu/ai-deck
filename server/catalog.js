@@ -118,8 +118,15 @@ export function dedupe(items) {
 // Names that say nothing on a card ("mcp", "cli"): shown as owner/repo instead.
 const VAGUE_NAME = /^(server|mcp|mcp[-_]server|cli|app|main|src|core|skills?|plugins?|extensions?|agents?|tools?|ai)$/i;
 
+// Some registry entries name the registry itself as their source repo; its stars and its official
+// owner are not theirs.
+const REGISTRY_REPO = "modelcontextprotocol/registry";
+
 export function normalizeItem(item) {
   if (!item?.id || !item?.name || !TYPES.includes(item.type)) return null;
+  if (item.type !== "repo" && item.repo?.toLowerCase() === REGISTRY_REPO) {
+    item = { ...item, repo: null, stars: undefined, forks: undefined, pushedAt: undefined };
+  }
   const owner = item.repo?.split("/")[0]?.toLowerCase();
   const normalized = {
     tags: [],
@@ -194,6 +201,10 @@ export function formatCount(n) {
 
 export function catalogStats(catalog) {
   const counts = Object.fromEntries(TYPES.map((t) => [t, 0]));
-  for (const item of catalog.items) counts[item.type] += 1;
-  return { counts, total: catalog.items.length, source: catalog.source, generatedAt: catalog.generatedAt, trendingAt: catalog.trendingAt };
+  let connectors = 0;
+  for (const item of catalog.items) {
+    counts[item.type] += 1;
+    if (item.type === "mcp" && item.agents.includes("chatgpt")) connectors += 1; // ChatGPT only takes remote servers
+  }
+  return { counts, connectors, total: catalog.items.length, source: catalog.source, generatedAt: catalog.generatedAt, trendingAt: catalog.trendingAt };
 }

@@ -82,6 +82,14 @@ test("normalizeItem rejects unknown types and infers level", () => {
   assert.equal(normalizeItem({ id: "b", name: "b", type: "mcp", requires: ["Stripe API key"] }).level, "intermediate");
 });
 
+test("a registry entry that names the registry as its repo doesn't borrow its stars or official owner", () => {
+  const item = normalizeItem({ id: "mcp:registry:x/y", type: "mcp", name: "Y", repo: "modelcontextprotocol/registry", stars: 7418, pushedAt: new Date().toISOString() });
+  assert.equal(item.repo, null);
+  assert.equal(item.official, false);
+  assert.equal(item.stars, undefined);
+  assert.ok(item.trust.score < 60, `trust ${item.trust.score}`);
+});
+
 test("githubRepoFromUrl handles .git, paths and non-GitHub", () => {
   assert.equal(githubRepoFromUrl("https://github.com/acme/tool.git"), "acme/tool");
   assert.equal(githubRepoFromUrl("https://github.com/acme/tool/tree/main/x"), "acme/tool");
