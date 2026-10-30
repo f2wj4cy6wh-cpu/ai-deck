@@ -6,7 +6,6 @@
 import { buildCatalog } from "./lib/catalog.js";
 import { buildIndex } from "./lib/search.js";
 import { createApi } from "./lib/api.js";
-import { matchMentions, parseVideoInput } from "./lib/video.js";
 
 const $view = document.getElementById("view");
 const $toast = document.getElementById("toast");
@@ -81,7 +80,7 @@ function ago(iso) {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-const SERVER_ROUTES = new Set(["/api/rank", "/api/ai", "/api/submit", "/api/video"]);
+const SERVER_ROUTES = new Set(["/api/rank", "/api/ai", "/api/submit"]);
 let localApiPromise = null;
 let localData = null; // { catalog, getIndex } once the catalog has loaded
 
@@ -623,7 +622,6 @@ async function viewExplore() {
       <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Try asking:</span>
       <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 lg:flex-wrap lg:overflow-visible">${EXAMPLE_QUERIES.map((q) => chip(q, { href: hrefWith("search", { q }) })).join("")}</div>
     </div>
-    ${videoBanner()}
     <div class="w-full bg-surface-container-lowest py-1.5 px-space-sm rounded-lg shadow-[1px_1px_0px_#000000]">
       <div class="flex flex-wrap items-center gap-x-space-md gap-y-1 font-label-code text-label-code text-on-surface-variant">
         <span class="flex items-center gap-1.5 text-primary"><span class="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" aria-hidden="true"></span>LIVE_INDEX</span>
@@ -659,123 +657,6 @@ function hrefApi(path, params) {
   return `${path}?${qs}`;
 }
 
-// ---------- video finder ----------
-
-function videoBanner() {
-  return `<a href="#/video" class="press flex items-center gap-space-sm bg-surface-container-low rounded-lg p-space-sm shadow-[3px_3px_0px_#000000] hover:shadow-[3px_3px_0px_#10b981] transition-shadow">
-    <span class="w-8 h-8 shrink-0 rounded bg-primary-container text-on-primary-container flex items-center justify-center shadow-[1px_1px_0px_#000000]"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">play_arrow</span></span>
-    <span class="flex flex-col min-w-0">
-      <span class="font-label-code text-label-code text-primary uppercase tracking-wider">Find tools in a video</span>
-      <span class="font-body-sm text-body-sm text-on-surface-variant">Saw a YouTube video about AI tools? Get every tool it shows, with install steps.</span>
-    </span>
-    <span class="material-symbols-outlined text-outline text-[18px] ml-auto" aria-hidden="true">chevron_right</span>
-  </a>`;
-}
-
-async function viewVideo() {
-  const status = await api("/api/video").catch(() => ({ enabled: false, reason: "The video finder isn't available here" }));
-  const intro = `<div class="bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] space-y-1">
-      <h1 class="font-headline-md text-headline-md text-on-surface">Find the tools in a video</h1>
-      <p class="font-body-md text-body-md text-on-surface-variant">Paste a YouTube link (a video or a short). AI Deck lists every plugin, skill, MCP server, prompt and repo it shows, and how to install each one.</p>
-    </div>`;
-  if (!status.enabled) return page(`${intro}${emptyBlock(`${status.reason}.`, `<a href="#/explore" class="font-label-code text-label-code text-primary pt-1">[ BACK TO EXPLORE ]</a>`)}`);
-  return page(`${intro}
-    <form id="video-form" class="flex flex-col gap-space-sm bg-surface-container-low p-space-sm rounded-lg shadow-[3px_3px_0px_#000000]">
-      <label class="flex flex-col gap-1">
-        <span class="font-label-code text-label-sm text-on-surface-variant uppercase tracking-widest">YouTube link</span>
-        <input name="youtube" type="url" inputmode="url" placeholder="https://youtube.com/shorts/..." class="bg-surface-container-lowest px-3 py-2 font-body-md text-body-md text-on-surface rounded shadow-[2px_2px_0px_#000000] focus:outline-none focus:shadow-[2px_2px_0px_#10b981]" />
-      </label>
-      <button type="submit" class="press flex items-center justify-center gap-1.5 py-2 bg-primary text-on-primary font-label-code text-label-code uppercase rounded shadow-[2px_2px_0px_#000000]"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">search</span>[ FIND THE TOOLS ]</button>
-      <p class="font-body-sm text-body-sm text-outline">Videos are analyzed by Google Gemini. The video has to be public; Instagram and TikTok links can't be opened.</p>
-    </form>
-    <div id="video-results" class="flex flex-col gap-space-lg" aria-live="polite"></div>`);
-}
-
-const VIDEO_CATEGORY = { mcp: "mcp", plugin: "plugin", skill: "skill", prompt: "prompt", repo: "repo" };
-const CONFIDENCE_LABEL = { shown: "shown on screen", said: "mentioned", guess: "unclear name" };
-
-/** Sends the link, then matches what Gemini saw against the catalog loaded in the browser. */
-async function runVideoFinder(form) {
-  const out = document.getElementById("video-results");
-  const button = form.querySelector('button[type="submit"]');
-  const input = parseVideoInput(form.elements.youtube.value);
-  if (input.error) return void (out.innerHTML = errorBlock(input.error));
-  const request = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ youtube: input.youtube }) };
-  button.disabled = true;
-  out.innerHTML = loadingBlock("WATCHING THE VIDEO (UP TO A MINUTE)");
-  try {
-    const [found] = await Promise.all([api("/api/video", request), localApi()]);
-    const matches = matchMentions(localData.getIndex(), localData.catalog, found.tools);
-    out.innerHTML = videoResults(found, matches);
-  } catch (error) {
-    out.innerHTML = errorBlock(error.message);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-function videoResults(found, matches) {
-  const seen = new Set();
-  const inDeck = matches.filter((m) => m.item && !seen.has(m.item.id) && seen.add(m.item.id));
-  const missing = matches.filter((m) => !m.item);
-  remember(inDeck.map((m) => m.item));
-  const summary = found.summary ? `<p class="font-body-md text-body-md text-on-surface-variant"><span class="font-label-code text-label-code text-secondary block">THE VIDEO</span>${esc(found.summary)}</p>` : "";
-  if (!matches.length) return `${summary}${emptyBlock("No AI tools spotted in that video. If it does show some, try a clip where their names or links are on screen.")}`;
-  const deckHtml = inDeck.length
-    ? `<div class="flex flex-col gap-space-sm">${sectionHeader(`In AI Deck // ${inDeck.length}`, "")}${cardGrid(inDeck.map((m) => card(m.item, { why: `In the video as "${m.mention.name}" (${CONFIDENCE_LABEL[m.mention.confidence] ?? "mentioned"})` })).join(""))}</div>`
-    : "";
-  const missingHtml = missing.length
-    ? `<div class="flex flex-col gap-space-sm">
-        ${sectionHeader(`Not in AI Deck yet // ${missing.length}`, "")}
-        <p class="font-body-sm text-body-sm text-on-surface-variant">Not matched to anything we list. Check the name before installing anything a video shows: copycat packages with near-identical names exist.</p>
-        ${missing.map((m) => missingRow(m.mention)).join("")}
-      </div>`
-    : "";
-  return `${summary}${deckHtml}${missingHtml}`;
-}
-
-function missingRow(t) {
-  const repo = repoLink(t);
-  return `<div class="bg-surface-container-low rounded p-space-sm shadow-[2px_2px_0px_#000000] flex flex-col gap-1">
-    <div class="flex items-center gap-2 flex-wrap">
-      <span class="font-headline-sm text-headline-sm text-on-surface">${esc(t.name)}</span>
-      <span class="px-1.5 py-0.5 bg-surface-container-high font-label-code text-label-sm text-on-surface-variant rounded uppercase">${esc(t.kind)}</span>
-      <span class="font-label-code text-label-sm ${t.confidence === "guess" ? "text-error" : "text-outline"} uppercase">${esc(CONFIDENCE_LABEL[t.confidence] ?? "")}</span>
-    </div>
-    ${t.what ? `<p class="font-body-sm text-body-sm text-on-surface-variant">${esc(t.what)}</p>` : ""}
-    ${t.command ? `<pre class="bg-surface-container-lowest rounded p-space-xs font-label-code text-[11px] text-on-surface-variant whitespace-pre-wrap break-all">${esc(t.command)}</pre>` : ""}
-    ${
-      repo
-        ? `<div class="flex items-center gap-space-sm pt-1">
-            <a href="${esc(repo)}" target="_blank" rel="noopener noreferrer" class="font-label-code text-label-code text-primary hover:underline">${esc(repo.replace("https://", ""))} ↗</a>
-            <button type="button" data-action="suggest-video" data-url="${esc(repo)}" data-name="${esc(t.name)}" data-kind="${esc(VIDEO_CATEGORY[t.kind] ?? "repo")}" class="press ml-auto px-2.5 py-1 bg-surface-container-high text-primary font-label-code text-label-sm rounded shadow-[1px_1px_0px_#000000]">[ SUGGEST TO AI DECK ]</button>
-          </div>`
-        : ""
-    }
-  </div>`;
-}
-
-/** A GitHub link for an unmatched tool, only from what the video actually showed. */
-function repoLink(t) {
-  if (/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+/i.test(t.url ?? "")) return t.url.match(/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+/i)[0];
-  if (/^[\w.-]+\/[\w.-]+$/.test(t.repo ?? "")) return `https://github.com/${t.repo}`;
-  return null;
-}
-
-async function suggestFromVideo(el) {
-  try {
-    const res = await api("/api/submit", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url: el.dataset.url, category: el.dataset.kind, note: `Seen in a video as "${el.dataset.name}"` }),
-    });
-    el.disabled = true;
-    el.textContent = res.duplicate ? "[ ALREADY SUGGESTED ]" : "[ SUGGESTED ✓ ]";
-  } catch (error) {
-    toast(error.message.toUpperCase());
-  }
-}
-
 async function viewSearch(params, token, { live = false } = {}) {
   const q = (params.get("q") ?? "").trim();
   const type = params.get("type") ?? "";
@@ -790,8 +671,7 @@ async function viewSearch(params, token, { live = false } = {}) {
       <div class="flex flex-col gap-space-xs">
         <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Describe a task, for example:</span>
         <div class="flex flex-wrap gap-2">${EXAMPLE_QUERIES.map((ex) => chip(ex, { href: hrefWith("search", { q: ex, type }) })).join("")}</div>
-      </div>
-      ${videoBanner()}`);
+      </div>`);
   }
 
   if (!live) pushRecent(q); // half-typed words shouldn't fill the recent list
@@ -1020,7 +900,6 @@ const VIEWS = {
   saved: { label: "Saved", nav: "saved", render: viewSaved },
   starter: { label: "Starter Kit", nav: "explore", render: viewStarter },
   trending: { label: "Trending", nav: "explore", render: viewTrending },
-  video: { label: "Video Finder", nav: "explore", render: viewVideo },
 };
 
 async function render() {
@@ -1152,11 +1031,6 @@ document.addEventListener("submit", async (event) => {
     else location.hash = next;
     return;
   }
-  if (form.id === "video-form") {
-    event.preventDefault();
-    await runVideoFinder(form);
-    return;
-  }
   if (form.id === "submit-form") {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(form));
@@ -1245,9 +1119,6 @@ document.addEventListener("click", async (event) => {
       break;
     case "submit-open":
       openSubmitModal();
-      break;
-    case "suggest-video":
-      await suggestFromVideo(el);
       break;
     case "modal-close":
       closeModal();
