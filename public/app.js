@@ -133,11 +133,21 @@ function remember(items) {
 }
 
 let toastTimer;
-function toast(message) {
+let toastUndo = null;
+/** Pass `undo` for a reversible action: the toast gets an UNDO button and stays up longer. */
+function toast(message, undo = null) {
   $toast.textContent = `> ${message}`;
+  toastUndo = undo;
+  if (undo) $toast.insertAdjacentHTML("beforeend", `<button type="button" data-action="toast-undo" class="hit ml-3 underline underline-offset-2 font-bold">UNDO</button>`);
+  $toast.classList.toggle("pointer-events-none", !undo);
   $toast.classList.remove("opacity-0", "-translate-y-2");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => $toast.classList.add("opacity-0", "-translate-y-2"), 2200);
+  toastTimer = setTimeout(hideToast, undo ? 5000 : 2200);
+}
+
+function hideToast() {
+  toastUndo = null;
+  $toast.classList.add("opacity-0", "-translate-y-2", "pointer-events-none");
 }
 
 /** Confirms a copy on the button that was clicked, where the user is looking. */
@@ -200,8 +210,8 @@ function searchConsole({ value = "", placeholder = "Describe what you want your 
       <label class="flex items-center flex-1 px-space-sm py-2 bg-surface-container-lowest rounded min-w-0">
         <span class="font-label-code text-label-code text-primary mr-space-xs select-none" aria-hidden="true">&gt;_</span>
         <span class="sr-only">Search in plain English</span>
-        <input name="q" value="${esc(value)}" autocomplete="off" enterkeyhint="search" class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none min-w-0" placeholder="${esc(placeholder)}" type="search" />
-        <kbd class="hidden lg:inline-block ml-space-xs px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-label-code text-label-sm" title="Press / to search from anywhere">/</kbd>
+        <input name="q" value="${esc(value)}" autocomplete="off" enterkeyhint="search" class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none min-w-0" placeholder="${esc(placeholder)}" type="search" aria-keyshortcuts="/ Control+K Meta+K" />
+        <kbd class="hidden lg:inline-block ml-space-xs px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-label-code text-label-sm whitespace-nowrap" title="Press / or Ctrl+K to search from any page">${/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}</kbd>
       </label>
       <button class="press flex items-center justify-center gap-1 bg-primary text-on-primary font-label-code text-label-code px-3 py-2.5 rounded shadow-[2px_2px_0px_#000000]" type="submit">
         <span class="material-symbols-outlined text-[16px]" aria-hidden="true">keyboard_return</span><span>[RUN]</span>
@@ -277,7 +287,7 @@ function trustLegend() {
 
 function bookmarkButton(item) {
   const on = state.saved.has(item.id);
-  return `<button type="button" data-action="save" data-id="${esc(item.id)}" aria-pressed="${on}" aria-label="${on ? "Remove from saved" : "Save"} ${esc(item.name)}" class="press w-8 h-8 shrink-0 flex items-center justify-center bg-surface-container ${on ? "text-primary" : "text-on-surface-variant"} hover:text-primary shadow-[1px_1px_0px_#000000] rounded">
+  return `<button type="button" data-action="save" data-id="${esc(item.id)}" aria-pressed="${on}" aria-label="${on ? "Remove from saved" : "Save"} ${esc(item.name)}" class="press hit w-8 h-8 shrink-0 flex items-center justify-center bg-surface-container ${on ? "text-primary" : "text-on-surface-variant"} hover:text-primary shadow-[1px_1px_0px_#000000] rounded">
     <span class="material-symbols-outlined text-[18px] ${on ? "icon-fill" : ""}" aria-hidden="true">bookmark</span>
   </button>`;
 }
@@ -505,6 +515,17 @@ function loadingBlock(label = "QUERYING INDEX") {
   return `<div class="bg-surface-container-lowest p-space-sm rounded shadow-[2px_2px_0px_#000000] font-label-code text-label-code text-on-surface-variant flex items-center gap-2">
     <span class="material-symbols-outlined text-primary text-[16px] animate-spin" style="animation-duration:1.6s" aria-hidden="true">sync</span>${esc(label)}...
   </div>`;
+}
+
+/** Card-shaped placeholders, so a slow page keeps its layout instead of jumping when results arrive. */
+function skeletonCards(label = "Loading", n = 4) {
+  const bar = (size) => `<div class="${size} rounded bg-surface-container-high"></div>`;
+  const one = `<div class="bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] flex flex-col gap-space-sm">
+    <div class="flex items-center gap-space-sm">${bar("w-8 h-8")}${bar("w-2/5 h-4")}</div>
+    ${bar("w-full h-3")}${bar("w-4/5 h-3")}
+    <div class="flex gap-2 pt-1">${bar("w-16 h-5")}${bar("w-12 h-5")}</div>
+  </div>`;
+  return `<div role="status" aria-label="${esc(label)}" class="animate-pulse motion-reduce:animate-none">${cardGrid(one.repeat(n))}</div>`;
 }
 
 function errorBlock(message) {
@@ -930,26 +951,43 @@ async function render() {
   // A live render (search as you type) keeps the old results up until the new ones are ready.
   const live = state.live;
   state.live = false;
-  if (!live) $view.innerHTML = page(loadingBlock());
+  // Most views render from the local catalog in a few ms: the old page stays up, and placeholders only
+  // show if this one is slow, so fast navigations don't flash.
+  const slow = live ? 0 : setTimeout(() => token === state.renderToken && ($view.innerHTML = page(skeletonCards())), 150);
   try {
     // Views return an HTML string, or { html, after } when they need to run once mounted.
     const out = await view.render(params, token, { live });
+    clearTimeout(slow);
     if (token !== state.renderToken) return;
     // Carry over what's in the box right now, caret included: keys typed during the render aren't lost.
     const typing = live && document.activeElement?.matches(".search-form input") ? document.activeElement : null;
     const kept = typing && { value: typing.value, start: typing.selectionStart, end: typing.selectionEnd };
-    $view.innerHTML = typeof out === "string" ? out : out.html;
-    if (kept) {
-      const input = $view.querySelector(".search-form input");
-      input.value = kept.value;
-      input.focus();
-      input.setSelectionRange(kept.start, kept.end);
-    }
-    out.after?.();
+    swapView(() => {
+      $view.innerHTML = typeof out === "string" ? out : out.html;
+      if (kept) {
+        const input = $view.querySelector(".search-form input");
+        input.value = kept.value;
+        input.focus();
+        input.setSelectionRange(kept.start, kept.end);
+      }
+      if (nav.scroll != null) window.scrollTo({ top: nav.scroll });
+      nav.scroll = null;
+      if (nav.focusSearch) $view.querySelector(".search-form input")?.focus();
+      nav.focusSearch = false;
+      out.after?.();
+    }, !live);
   } catch (error) {
+    clearTimeout(slow);
     if (token !== state.renderToken) return;
     $view.innerHTML = page(errorBlock(error.message));
   }
+}
+
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+/** Cross-fades page changes where the browser supports it; typing-driven updates swap instantly. */
+function swapView(mount, animate) {
+  if (animate && document.startViewTransition && !reducedMotion.matches) document.startViewTransition(mount);
+  else mount();
 }
 
 function renderLevel() {
@@ -966,11 +1004,12 @@ function renderLevel() {
 
 function openSubmitModal() {
   $modalRoot.innerHTML = `
-  <div class="fixed inset-0 z-[55] bg-background/80 backdrop-blur-sm flex items-center justify-center p-space-md" data-action="modal-backdrop">
-    <form id="submit-form" role="dialog" aria-modal="true" aria-labelledby="submit-title" class="bg-surface-container p-space-lg rounded shadow-[6px_6px_0px_#000000] max-w-sm w-full flex flex-col gap-space-md">
-      <div class="flex items-center justify-between">
+  <div class="fixed inset-0 z-[55] bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-space-md" data-action="modal-backdrop">
+    <form id="submit-form" role="dialog" aria-modal="true" aria-labelledby="submit-title" class="bg-surface-container p-space-lg pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-space-lg rounded-t-lg sm:rounded shadow-[6px_6px_0px_#000000] w-full sm:max-w-sm flex flex-col gap-space-md">
+      <div data-sheet-handle class="sm:hidden -mt-space-sm -mx-space-lg pt-1 pb-space-xs flex justify-center touch-none cursor-grab" aria-hidden="true"><span class="w-10 h-1 rounded-full bg-outline-variant"></span></div>
+      <div data-sheet-handle class="flex items-center justify-between touch-none sm:touch-auto">
         <h2 id="submit-title" class="flex items-center gap-1.5 font-label-code text-label-code text-primary uppercase"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">upload</span>SUBMIT_TO_INDEX</h2>
-        <button type="button" data-action="modal-close" aria-label="Close" class="w-7 h-7 flex items-center justify-center bg-surface-container-high text-on-surface hover:text-error"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">close</span></button>
+        <button type="button" data-action="modal-close" aria-label="Close" class="hit w-8 h-8 flex items-center justify-center bg-surface-container-high text-on-surface hover:text-error"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">close</span></button>
       </div>
       <label class="flex flex-col gap-space-xs">
         <span class="font-label-code text-label-sm text-on-surface-variant uppercase">Repo or manifest URL</span>
@@ -994,10 +1033,55 @@ function openSubmitModal() {
     </form>
   </div>`;
   $modalRoot.querySelector("input")?.focus();
+  swipeToDismiss($modalRoot.querySelector("#submit-form"));
+}
+
+/** Phone bottom sheet: drag it down by the handle or title row to close; a short drag springs back. */
+function swipeToDismiss(sheet) {
+  let start = null;
+  sheet.addEventListener("pointerdown", (event) => {
+    if (innerWidth >= 640 || !event.target.closest("[data-sheet-handle]") || event.target.closest("button")) return;
+    start = { y: event.clientY, t: event.timeStamp };
+    try {
+      sheet.setPointerCapture(event.pointerId); // keep the drag when the finger leaves the handle
+    } catch {
+      // the pointer is already gone
+    }
+    sheet.style.transition = "none";
+  });
+  sheet.addEventListener("pointermove", (event) => {
+    if (start) sheet.style.transform = `translateY(${Math.max(0, event.clientY - start.y)}px)`;
+  });
+  const end = (event) => {
+    if (!start) return;
+    const dy = event.clientY - start.y;
+    const fast = dy / Math.max(1, event.timeStamp - start.t) > 0.5; // a quick flick closes too
+    start = null;
+    sheet.style.transition = "transform 200ms ease-out";
+    if (dy > sheet.offsetHeight / 3 || (fast && dy > 30)) {
+      sheet.style.transform = "translateY(100%)";
+      setTimeout(closeModal, 180);
+    } else {
+      sheet.style.transform = "";
+    }
+  };
+  sheet.addEventListener("pointerup", end);
+  sheet.addEventListener("pointercancel", end);
 }
 
 function closeModal() {
   $modalRoot.innerHTML = "";
+}
+
+function setSaved(item, on) {
+  if (on) state.saved.add(item.id);
+  else state.saved.delete(item.id);
+  writeStore("aideck.saved", [...state.saved]);
+  for (const btn of document.querySelectorAll(`[data-action="save"][data-id="${CSS.escape(item.id)}"]`)) btn.outerHTML = bookmarkButton(item);
+  if (parseHash().route === "saved") {
+    state.live = true; // redraw the list in place: no fade, no placeholders, scroll kept
+    render();
+  }
 }
 
 // ---------- events ----------
@@ -1028,13 +1112,21 @@ document.addEventListener("submit", async (event) => {
     const next = hrefWith("search", { q, type: form.dataset.type });
     // Live search may already have put this query in the address bar: render anyway, as a full search.
     if (next === location.hash) render();
-    else location.hash = next;
+    else {
+      nav.byLink = true; // a new search starts at the top
+      location.hash = next;
+    }
     return;
   }
   if (form.id === "submit-form") {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(form));
     const errorEl = form.querySelector("#submit-error");
+    const button = form.querySelector('button[type="submit"]');
+    // One request at a time: a double tap can't queue the same link twice (the server also dedupes by URL).
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = "[ SENDING... ]";
     try {
       const res = await api("/api/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
       closeModal();
@@ -1042,6 +1134,8 @@ document.addEventListener("submit", async (event) => {
     } catch (error) {
       errorEl.textContent = error.message;
       errorEl.classList.remove("hidden");
+      button.disabled = false;
+      button.textContent = "[ Submit ]";
     }
   }
 });
@@ -1100,12 +1194,15 @@ document.addEventListener("click", async (event) => {
     case "save": {
       if (!item) return;
       const on = !state.saved.has(item.id);
-      if (on) state.saved.add(item.id);
-      else state.saved.delete(item.id);
-      writeStore("aideck.saved", [...state.saved]);
-      for (const btn of document.querySelectorAll(`[data-action="save"][data-id="${CSS.escape(item.id)}"]`)) btn.outerHTML = bookmarkButton(item);
-      toast(on ? "SAVED TO COLLECTION" : "REMOVED FROM SAVED");
-      if (!on && parseHash().route === "saved") render();
+      setSaved(item, on);
+      if (on) toast("SAVED TO COLLECTION");
+      else toast("REMOVED FROM SAVED", () => setSaved(item, true));
+      break;
+    }
+    case "toast-undo": {
+      const undo = toastUndo;
+      hideToast();
+      undo?.();
       break;
     }
     case "agent-all":
@@ -1131,19 +1228,40 @@ document.addEventListener("click", async (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && $modalRoot.innerHTML) closeModal();
-  if (event.key === "/" && !/input|textarea|select/i.test(document.activeElement?.tagName ?? "")) {
-    const input = document.querySelector(".search-form input");
-    if (input) {
-      event.preventDefault();
-      input.focus();
-    }
+  if ($modalRoot.innerHTML) return;
+  const typing = /input|textarea|select/i.test(document.activeElement?.tagName ?? "");
+  if ((event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !typing)) {
+    event.preventDefault();
+    focusSearch();
   }
 });
 
-window.addEventListener("hashchange", () => {
+// Back and Forward return to where you were on that page; following a link starts at the top.
+history.scrollRestoration = "manual";
+const nav = { scroll: null, focusSearch: false, byLink: false, positions: new Map() };
+document.addEventListener("click", (event) => {
+  if (event.target.closest('a[href^="#"]')) nav.byLink = true;
+}, true);
+
+window.addEventListener("hashchange", (event) => {
+  nav.positions.set(new URL(event.oldURL).hash, window.scrollY);
+  nav.scroll = nav.byLink ? 0 : nav.positions.get(location.hash) ?? 0;
+  nav.byLink = false;
   render();
-  window.scrollTo({ top: 0 });
 });
+
+/** "/" or Ctrl/⌘+K: jump to the search box, opening the search page if this one has none. */
+function focusSearch() {
+  const input = $view.querySelector(".search-form input");
+  if (input) {
+    input.focus();
+    input.select();
+    return;
+  }
+  nav.byLink = true;
+  nav.focusSearch = true;
+  location.hash = "#/search";
+}
 
 $agentSelect.addEventListener("change", () => {
   state.agent = $agentSelect.value;
@@ -1155,7 +1273,7 @@ $agentSelect.addEventListener("change", () => {
 
 async function boot() {
   renderLevel();
-  $view.innerHTML = page(loadingBlock("LOADING THE INDEX"));
+  $view.innerHTML = page(skeletonCards("Loading the index"));
   api("/api/ai")
     .then((ai) => (state.ai = ai))
     .catch(() => (state.ai = { enabled: false, reason: "server unavailable" }));

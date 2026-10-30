@@ -12,12 +12,27 @@
   body {
     overscroll-behavior: none;
     min-height: 100dvh;
+    /* Star counts and stats line up and don't jitter as they change. */
+    font-variant-numeric: tabular-nums;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* Landscape phones: keep the bars clear of the notch. */
+  .px-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
   :focus-visible {
     outline: 2px solid #10b981;
@@ -43,6 +58,36 @@
   .icon-fill {
     font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
   }
+  /* Small buttons get a 48px touch area without looking bigger. */
+  .hit {
+    position: relative;
+  }
+  .hit::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+  /* Above the bottom tab bar, which grows by the home-indicator inset. */
+  .toast-pos {
+    bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 1024px) {
+    .toast-pos {
+      bottom: 2rem;
+    }
+  }
+}
+
+/* Page changes cross-fade quickly; the bars stay put. */
+#site-header {
+  view-transition-name: site-header;
+}
+#tab-bar {
+  view-transition-name: tab-bar;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 150ms;
 }
 
 /* JetBrains Mono's ligatures draw "--" as one long dash; commands must look exactly as typed. */
