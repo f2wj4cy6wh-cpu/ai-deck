@@ -12,16 +12,12 @@ const ORIGIN = "https://ai-deck.example";
 
 const answer = (obj) => ({ candidates: [{ content: { parts: [{ text: JSON.stringify(obj) }] } }], modelVersion: "gemini-test" });
 
-/** A fake Gemini: records calls, answers the upload, status and generate steps. */
+/** A fake Gemini: records calls, answers the generate step. */
 function fakeGemini(result = { summary: "s", tools: [{ name: "Playwright MCP", kind: "mcp", confidence: "shown" }] }) {
   const calls = [];
   const fetchImpl = async (url, init = {}) => {
     calls.push({ url: String(url), method: init.method ?? "GET", init });
-    if (String(url).endsWith("/upload/v1beta/files")) return new Response("{}", { headers: { "x-goog-upload-url": "https://upload.example/u1" } });
-    if (String(url) === "https://upload.example/u1") return Response.json({ file: { name: "files/abc", uri: "https://g/files/abc", state: "PROCESSING", mimeType: "video/mp4" } });
-    if (String(url).endsWith("/v1beta/files/abc") && (init.method ?? "GET") === "GET") return Response.json({ name: "files/abc", uri: "https://g/files/abc", state: "ACTIVE", mimeType: "video/mp4" });
     if (String(url).includes(":generateContent")) return Response.json(answer(result));
-    if (init.method === "DELETE") return new Response(null, { status: 200 });
     return new Response("unexpected", { status: 500 });
   };
   return { calls, fetchImpl };
@@ -30,7 +26,7 @@ function fakeGemini(result = { summary: "s", tools: [{ name: "Playwright MCP", k
 test("parseVideoInput accepts YouTube links and turns away login-walled sites", () => {
   assert.deepEqual(parseVideoInput("https://youtu.be/dQw4w9WgXcQ"), { youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
   assert.deepEqual(parseVideoInput("https://m.youtube.com/shorts/dQw4w9WgXcQ?si=x"), { youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
-  assert.match(parseVideoInput("https://www.instagram.com/reel/C123/").error, /upload the file/);
+  assert.match(parseVideoInput("https://www.instagram.com/reel/C123/").error, /behind a login/);
   assert.match(parseVideoInput("https://vimeo.com/1").error, /Only YouTube/);
   assert.ok(parseVideoInput("not a link").error);
 });
@@ -66,19 +62,12 @@ test("model output is cleaned: bad links dropped, strings capped, unknown confid
   assert.equal(tools[0].what.length, 160);
 });
 
-test("an uploaded video is streamed to the Files API, analyzed once active, then deleted", async () => {
+test("a YouTube link goes straight to the model in one call", async () => {
   const { calls, fetchImpl } = fakeGemini();
-  const found = await findToolsInVideo({ apiKey: "k", body: "bytes", size: 5, mimeType: "video/mp4", fetchImpl, sleep: async () => {} });
+  const found = await findToolsInVideo({ apiKey: "k", youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", fetchImpl });
   assert.equal(found.tools[0].name, "Playwright MCP");
-  const steps = calls.map((c) => `${c.method} ${c.url.replace(/^https:\/\/[^/]+/, "")}`);
-  assert.deepEqual(steps, ["POST /upload/v1beta/files", "POST /u1", "GET /v1beta/files/abc", "POST /v1beta/models/gemini-2.5-flash:generateContent", "DELETE /v1beta/files/abc"]);
-  assert.equal(calls[0].init.headers["x-goog-upload-header-content-length"], "5");
-});
-
-test("a YouTube link goes straight to the model, no upload", async () => {
-  const { calls, fetchImpl } = fakeGemini();
-  await findToolsInVideo({ apiKey: "k", youtube: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", fetchImpl });
   assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /gemini-2\.5-flash:generateContent$/);
   assert.match(calls[0].init.body, /youtube\.com\/watch\?v=dQw4w9WgXcQ/);
 });
 
@@ -127,7 +116,7 @@ test("the video route refuses bad input before spending anything", async () => {
     [postJson(youtube, { origin: "https://evil.example" }), fakeEnv(), 403],
     [postJson(youtube), fakeEnv({ key: "" }), 503],
     [postJson({ youtube: "https://www.instagram.com/reel/x/" }), fakeEnv(), 400],
-    [new Request(`${ORIGIN}/api/video`, { method: "POST", headers: { "content-type": "video/mp4", "content-length": String(60 * 1024 * 1024), origin: ORIGIN }, body: "x" }), fakeEnv(), 413],
+    [new Request(`${ORIGIN}/api/video`, { method: "POST", headers: { "content-type": "video/mp4", "content-length": "1", origin: ORIGIN }, body: "x" }), fakeEnv(), 415],
     [new Request(`${ORIGIN}/api/video`, { method: "POST", headers: { "content-type": "text/plain", origin: ORIGIN }, body: "{}" }), fakeEnv(), 415],
   ];
   for (const [req, env, status] of cases) {

@@ -14,7 +14,7 @@ Search runs in the browser over one JSON file, so an agent can read the same dat
 - [Search](/#/search?q=let%20my%20ai%20use%20a%20web%20browser): plain-English search, e.g. `/#/search?q=<what you need>`
 - [Trending](/#/trending): AI repos gaining the most GitHub stars this week
 - [Prompts](/#/prompts): ready-to-use prompts for everyday tasks
-- [Video finder](/#/video): paste a YouTube link or upload a video to list the AI tools it shows
+- [Video finder](/#/video): paste a YouTube link to list the AI tools it shows
 - [Repos](/#/repos): AI repos by trust, stars, recent updates or trending
 
 ## Notes

@@ -666,7 +666,7 @@ function videoBanner() {
     <span class="w-8 h-8 shrink-0 rounded bg-primary-container text-on-primary-container flex items-center justify-center shadow-[1px_1px_0px_#000000]"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">play_arrow</span></span>
     <span class="flex flex-col min-w-0">
       <span class="font-label-code text-label-code text-primary uppercase tracking-wider">Find tools in a video</span>
-      <span class="font-body-sm text-body-sm text-on-surface-variant">Saw a reel or a YouTube video about AI tools? Get every tool it shows, with install steps.</span>
+      <span class="font-body-sm text-body-sm text-on-surface-variant">Saw a YouTube video about AI tools? Get every tool it shows, with install steps.</span>
     </span>
     <span class="material-symbols-outlined text-outline text-[18px] ml-auto" aria-hidden="true">chevron_right</span>
   </a>`;
@@ -674,10 +674,9 @@ function videoBanner() {
 
 async function viewVideo() {
   const status = await api("/api/video").catch(() => ({ enabled: false, reason: "The video finder isn't available here" }));
-  const maxMb = Math.round((status.maxBytes ?? 50 * 1024 * 1024) / 1024 / 1024);
   const intro = `<div class="bg-surface-container-low rounded-lg p-space-md shadow-[3px_3px_0px_#000000] space-y-1">
       <h1 class="font-headline-md text-headline-md text-on-surface">Find the tools in a video</h1>
-      <p class="font-body-md text-body-md text-on-surface-variant">Paste a YouTube link, or upload a video you saved (a reel, a TikTok, a screen recording). AI Deck lists every plugin, skill, MCP server, prompt and repo it shows, and how to install each one.</p>
+      <p class="font-body-md text-body-md text-on-surface-variant">Paste a YouTube link (a video or a short). AI Deck lists every plugin, skill, MCP server, prompt and repo it shows, and how to install each one.</p>
     </div>`;
   if (!status.enabled) return page(`${intro}${emptyBlock(`${status.reason}.`, `<a href="#/explore" class="font-label-code text-label-code text-primary pt-1">[ BACK TO EXPLORE ]</a>`)}`);
   return page(`${intro}
@@ -686,13 +685,8 @@ async function viewVideo() {
         <span class="font-label-code text-label-sm text-on-surface-variant uppercase tracking-widest">YouTube link</span>
         <input name="youtube" type="url" inputmode="url" placeholder="https://youtube.com/shorts/..." class="bg-surface-container-lowest px-3 py-2 font-body-md text-body-md text-on-surface rounded shadow-[2px_2px_0px_#000000] focus:outline-none focus:shadow-[2px_2px_0px_#10b981]" />
       </label>
-      <span class="font-label-code text-label-sm text-outline uppercase tracking-widest text-center">or</span>
-      <label class="flex flex-col gap-1">
-        <span class="font-label-code text-label-sm text-on-surface-variant uppercase tracking-widest">Video file (up to ${maxMb} MB)</span>
-        <input name="file" type="file" accept="video/*" class="font-body-sm text-body-sm text-on-surface-variant file:mr-space-sm file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-surface-container-high file:text-primary file:font-label-code" />
-      </label>
       <button type="submit" class="press flex items-center justify-center gap-1.5 py-2 bg-primary text-on-primary font-label-code text-label-code uppercase rounded shadow-[2px_2px_0px_#000000]"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">search</span>[ FIND THE TOOLS ]</button>
-      <p class="font-body-sm text-body-sm text-outline">Videos are analyzed by Google Gemini and deleted right after. Instagram and TikTok links can't be opened directly: save the video, then upload it.</p>
+      <p class="font-body-sm text-body-sm text-outline">Videos are analyzed by Google Gemini. The video has to be public; Instagram and TikTok links can't be opened.</p>
     </form>
     <div id="video-results" class="flex flex-col gap-space-lg" aria-live="polite"></div>`);
 }
@@ -700,24 +694,15 @@ async function viewVideo() {
 const VIDEO_CATEGORY = { mcp: "mcp", plugin: "plugin", skill: "skill", prompt: "prompt", repo: "repo" };
 const CONFIDENCE_LABEL = { shown: "shown on screen", said: "mentioned", guess: "unclear name" };
 
-/** Sends the link or file, then matches what Gemini saw against the catalog loaded in the browser. */
+/** Sends the link, then matches what Gemini saw against the catalog loaded in the browser. */
 async function runVideoFinder(form) {
   const out = document.getElementById("video-results");
-  const link = form.elements.youtube.value.trim();
-  const file = form.elements.file.files[0];
   const button = form.querySelector('button[type="submit"]');
-  let request;
-  if (file) {
-    request = { method: "POST", headers: { "content-type": file.type || "video/mp4" }, body: file };
-  } else if (link) {
-    const input = parseVideoInput(link);
-    if (input.error) return void (out.innerHTML = errorBlock(input.error));
-    request = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ youtube: input.youtube }) };
-  } else {
-    return void (out.innerHTML = errorBlock("Paste a YouTube link or pick a video file."));
-  }
+  const input = parseVideoInput(form.elements.youtube.value);
+  if (input.error) return void (out.innerHTML = errorBlock(input.error));
+  const request = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ youtube: input.youtube }) };
   button.disabled = true;
-  out.innerHTML = loadingBlock(file ? "UPLOADING AND WATCHING THE VIDEO (UP TO A MINUTE)" : "WATCHING THE VIDEO (UP TO A MINUTE)");
+  out.innerHTML = loadingBlock("WATCHING THE VIDEO (UP TO A MINUTE)");
   try {
     const [found] = await Promise.all([api("/api/video", request), localApi()]);
     const matches = matchMentions(localData.getIndex(), localData.catalog, found.tools);

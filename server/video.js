@@ -3,27 +3,25 @@
 // (copied to public/lib by scripts/build-web.js); the model call itself is in video-ai.js.
 import { search, editDistance } from "./search.js";
 
-export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
-
 /**
- * What the visitor pasted: a public YouTube video, a link the server can't fetch (Instagram, TikTok…:
- * they need the file instead), or nothing usable. Returns { youtube } | { error }.
+ * What the visitor pasted: a public YouTube video, a link the server can't fetch (Instagram, TikTok…),
+ * or nothing usable. Returns { youtube } | { error }.
  */
 export function parseVideoInput(text) {
   let url;
   try {
     url = new URL(String(text ?? "").trim());
   } catch {
-    return { error: "Paste a YouTube link, or upload the video file." };
+    return { error: "Paste a YouTube link." };
   }
   const host = url.hostname.replace(/^(www\.|m\.)/, "");
   if (/(^|\.)(instagram\.com|tiktok\.com|x\.com|twitter\.com|facebook\.com|threads\.net)$/.test(host)) {
-    return { error: "That site keeps videos behind a login, so AI Deck can't open the link. Save the video to your device and upload the file instead." };
+    return { error: "That site keeps videos behind a login, so AI Deck can't open the link. Only YouTube links work: if the video is on YouTube too, paste that link." };
   }
   let id = null;
   if (host === "youtu.be") id = url.pathname.slice(1);
   else if (host === "youtube.com") id = url.searchParams.get("v") ?? url.pathname.match(/^\/(shorts|live|embed)\/([^/]+)/)?.[2];
-  if (!id || !/^[\w-]{11}$/.test(id)) return { error: "Only YouTube links can be read directly. For anything else, upload the video file." };
+  if (!id || !/^[\w-]{11}$/.test(id)) return { error: "Only YouTube links can be read." };
   return { youtube: `https://www.youtube.com/watch?v=${id}` };
 }
 

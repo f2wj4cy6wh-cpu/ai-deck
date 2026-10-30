@@ -4,7 +4,7 @@ import { buildCatalog } from "../server/catalog.js";
 import { buildIndex } from "../server/search.js";
 import { createApi } from "../server/api.js";
 import { rerank, aiStatus, disableAi, AI_KEY_NAMES } from "../server/ai.js";
-import { parseVideoInput, MAX_VIDEO_BYTES } from "../server/video.js";
+import { parseVideoInput } from "../server/video.js";
 import { findToolsInVideo } from "../server/video-ai.js";
 
 const SERVER_ROUTES = new Set(["/api/rank", "/api/ai", "/api/submit"]);
@@ -71,14 +71,14 @@ async function takeDailyVideo(env) {
 }
 
 /**
- * /api/video: GET says whether the finder is on; POST takes {"youtube": url} as JSON, or the video file
- * itself as a video/* body, and returns the tools Gemini spotted. Matching them to the catalog happens in
- * the browser, which already has the catalog and index loaded.
+ * /api/video: GET says whether the finder is on; POST takes {"youtube": url} as JSON and returns the tools
+ * Gemini spotted. Matching them to the catalog happens in the browser, which already has the catalog and
+ * index loaded.
  */
 async function handleVideo(request, env, url) {
   const key = geminiKey(env);
   if (request.method === "GET") {
-    return json(key ? { enabled: true, maxBytes: MAX_VIDEO_BYTES } : { enabled: false, reason: "The video finder is not configured on this deployment" });
+    return json(key ? { enabled: true } : { enabled: false, reason: "The video finder is not configured on this deployment" });
   }
   if (request.method !== "POST") return json({ error: "Not found" }, 404);
   const origin = request.headers.get("origin");
@@ -86,47 +86,32 @@ async function handleVideo(request, env, url) {
   if (!key) return json({ error: "The video finder is not configured on this deployment" }, 503);
 
   const type = (request.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+  // Also forces a CORS preflight for cross-site browser posts, which this Worker never grants.
+  if (type !== "application/json") return json({ error: "Send a YouTube link as JSON" }, 415);
   const size = Number(request.headers.get("content-length"));
-  let input;
-  if (type === "application/json") {
-    if (!(size > 0 && size <= MAX_BODY)) return json({ error: "Request too large" }, 413);
-    let payload;
-    try {
-      payload = JSON.parse(await readLimited(request));
-    } catch {
-      return json({ error: "Expected a JSON body" }, 400);
-    }
-    input = parseVideoInput(payload.youtube);
-    if (input.error) return json({ error: input.error }, 400);
-  } else if (/^video\/[\w.+-]+$/.test(type)) {
-    if (!(size > 0)) return json({ error: "Upload the video as a file (its size must be known)" }, 411);
-    if (size > MAX_VIDEO_BYTES) return json({ error: `That video is over ${MAX_VIDEO_BYTES / 1024 / 1024} MB. Trim it, or upload a shorter clip.` }, 413);
-    // FixedLengthStream makes the runtime enforce the declared size while streaming, with no JS per chunk.
-    let body = request.body;
-    if (typeof FixedLengthStream === "function") {
-      const fixed = new FixedLengthStream(size);
-      request.body.pipeTo(fixed.writable).catch(() => {});
-      body = fixed.readable;
-    }
-    input = { body, size, mimeType: type };
-  } else {
-    // Also forces a CORS preflight for cross-site browser posts, which this Worker never grants.
-    return json({ error: "Send a YouTube link as JSON, or the video file" }, 415);
+  if (!(size > 0 && size <= MAX_BODY)) return json({ error: "Request too large" }, 413);
+  let payload;
+  try {
+    payload = JSON.parse(await readLimited(request));
+  } catch {
+    return json({ error: "Expected a JSON body" }, 400);
   }
+  const input = parseVideoInput(payload.youtube);
+  if (input.error) return json({ error: input.error }, 400);
 
   const { success } = (await env.VIDEO_LIMITER?.limit({ key: request.headers.get("cf-connecting-ip") ?? "unknown" })) ?? { success: true };
   if (!success) return json({ error: "Too many videos. Try again in a minute." }, 429);
   if (!(await takeDailyVideo(env))) return json({ error: "AI Deck has reached today's video limit. Try again tomorrow." }, 429);
 
   try {
-    const found = await findToolsInVideo({ apiKey: key, ...input, model: env.AI_DECK_VIDEO_MODEL || undefined });
+    const found = await findToolsInVideo({ apiKey: key, youtube: input.youtube, model: env.AI_DECK_VIDEO_MODEL || undefined });
     return json(found);
   } catch (error) {
     console.error("[video]", error);
-    if (input.youtube && error.status >= 400 && error.status < 500) {
-      return json({ error: "Gemini couldn't open that YouTube video. It has to be public; or download it and upload the file." }, 422);
+    if (error.status >= 400 && error.status < 500) {
+      return json({ error: "Gemini couldn't open that YouTube video. It has to be public." }, 422);
     }
-    return json({ error: "Couldn't analyze that video. Try again, or try a shorter clip." }, 502);
+    return json({ error: "Couldn't analyze that video. Try again, or try a shorter one." }, 502);
   }
 }
 
