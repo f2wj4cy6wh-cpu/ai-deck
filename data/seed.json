@@ -2010,6 +2010,155 @@
       "category": "coding",
       "level": "intermediate",
       "prompt": "Document the code below. Write [docstrings / a README section / usage examples] in the style of [LANGUAGE CONVENTION, e.g. JSDoc, Google-style Python]. Cover what it does, inputs and outputs, errors it can raise, and one realistic example. Only document behavior you can see in the code, and tell me anything that looks like a bug while you're at it.\n\n[PASTE CODE]"
+    },
+    {
+      "id": "skill:karpathy-guidelines",
+      "type": "skill",
+      "name": "Karpathy Skills (coding guidelines)",
+      "summary": "Four rules, from Andrej Karpathy's notes on AI coding mistakes, that make Claude check its assumptions, keep code simple and only touch what you asked for.",
+      "description": "Think before coding, simplicity first, surgical changes, goal-driven execution. One CLAUDE.md-style skill that applies to every project.",
+      "tags": [
+        "coding",
+        "guidelines",
+        "claude-md",
+        "code-quality",
+        "best-practices"
+      ],
+      "useCases": [
+        "stop my ai overcomplicating code",
+        "make claude code ask before guessing",
+        "stop ai changing code i didn't ask about",
+        "better coding habits for claude"
+      ],
+      "level": "beginner",
+      "requires": [],
+      "install": {
+        "command": "/plugin marketplace add multica-ai/andrej-karpathy-skills\n/plugin install andrej-karpathy-skills@karpathy-skills"
+      },
+      "repo": "multica-ai/andrej-karpathy-skills",
+      "author": "Jiayuan Zhang (forrestchang)"
+    },
+    {
+      "id": "repo:garrytan/gstack",
+      "type": "repo",
+      "name": "gstack",
+      "summary": "Garry Tan's Claude Code setup: slash commands that act as a CEO, eng manager, designer, code reviewer, QA tester and security officer for your project.",
+      "description": "Opinionated skills for planning, review, browser QA, security checks and shipping. Needs Git and Bun; runs on Claude Code and other agents.",
+      "tags": [
+        "workflow",
+        "code-review",
+        "qa",
+        "planning",
+        "skills",
+        "browser"
+      ],
+      "useCases": [
+        "a full dev team workflow for claude code",
+        "review my code before shipping",
+        "plan a product feature",
+        "test my app in a real browser"
+      ],
+      "level": "intermediate",
+      "requires": [
+        "Git",
+        "Bun 1.3.3+"
+      ],
+      "install": {
+        "command": "git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack\ncd ~/.claude/skills/gstack && ./setup"
+      },
+      "repo": "garrytan/gstack",
+      "author": "Garry Tan"
+    },
+    {
+      "id": "repo:bmad-code-org/BMAD-METHOD",
+      "type": "repo",
+      "name": "BMAD Method",
+      "summary": "A step-by-step method for building software with AI: clarify the idea, plan it, build and check it, then adjust. Agents and workflows for each step.",
+      "description": "Agile AI-driven development. Keeps decisions and context written down across a big project instead of starting each chat from scratch.",
+      "tags": [
+        "workflow",
+        "planning",
+        "agile",
+        "spec-driven",
+        "big-projects"
+      ],
+      "useCases": [
+        "plan a big project with ai",
+        "spec driven development",
+        "keep context across a long project",
+        "turn an idea into working software"
+      ],
+      "level": "intermediate",
+      "requires": [
+        "Node.js 20+",
+        "Python + uv"
+      ],
+      "install": {
+        "command": "npx bmad-method install"
+      },
+      "repo": "bmad-code-org/BMAD-METHOD",
+      "author": "BMad Code"
+    },
+    {
+      "id": "repo:calesthio/OpenMontage",
+      "type": "repo",
+      "name": "OpenMontage",
+      "summary": "An open-source video studio your AI agent runs: describe a video and it writes the script, finds images and music, narrates, adds subtitles and renders it.",
+      "description": "Agentic video production with many pipelines (explainers, montages, promos). Reviews its own output before showing you. AGPL-3.0.",
+      "tags": [
+        "video",
+        "editing",
+        "content",
+        "narration",
+        "subtitles"
+      ],
+      "useCases": [
+        "make a video with ai",
+        "make an explainer video",
+        "edit videos with claude code",
+        "ai video with narration and subtitles"
+      ],
+      "level": "intermediate",
+      "requires": [
+        "Python 3",
+        "Node.js",
+        "FFmpeg"
+      ],
+      "install": {
+        "command": "git clone https://github.com/calesthio/OpenMontage.git\ncd OpenMontage\nmake setup"
+      },
+      "repo": "calesthio/OpenMontage",
+      "author": "calesthio"
+    },
+    {
+      "id": "skill:taste-skill",
+      "type": "skill",
+      "name": "Taste Skill",
+      "summary": "Art direction for your AI: it designs websites, product pages and dashboards from reference images and checks the result in a real browser.",
+      "description": "Gives coding agents design taste instead of generic AI-looking pages. Needs Node 22+ and Chrome, Edge or Chromium; no API keys.",
+      "tags": [
+        "design",
+        "frontend",
+        "ui",
+        "websites",
+        "art-direction"
+      ],
+      "useCases": [
+        "make my website look less ai generated",
+        "design a nicer landing page",
+        "better ui design from claude",
+        "design a dashboard"
+      ],
+      "level": "beginner",
+      "requires": [
+        "Node.js 22+",
+        "Chrome, Edge or Chromium"
+      ],
+      "install": {
+        "command": "/plugin marketplace add Leonxlnx/taste-skill\n/plugin install taste-skill@taste-skill"
+      },
+      "repo": "Leonxlnx/taste-skill",
+      "author": "Leonxlnx"
     }
   ]
 }
