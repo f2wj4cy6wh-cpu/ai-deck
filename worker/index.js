@@ -95,6 +95,11 @@ async function serveCatalog(request, env, url) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // HTTPS only (workers.dev has no "Always use HTTPS" switch); local development stays on http.
+    if (url.protocol === "http:" && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(url.hostname)) {
+      url.protocol = "https:";
+      return Response.redirect(url.toString(), 301);
+    }
     if (url.pathname === "/catalog.json") return serveCatalog(request, env, url);
     // A key alone doesn't turn on search ranking (a model call per search): it also needs AI_DECK_RANKING=on.
     if (env.AI_DECK_RANKING !== "on" || !AI_KEY_NAMES.some((name) => env[name])) disableAi(`AI ranking is not configured on this deployment`);

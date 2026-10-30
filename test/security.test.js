@@ -23,6 +23,13 @@ const submit = (body, headers = {}) =>
   new Request(`${ORIGIN}/api/submit`, { method: "POST", headers: { "content-type": "application/json", origin: ORIGIN, ...headers }, body });
 const link = JSON.stringify({ url: "https://github.com/org/repo", category: "mcp" });
 
+test("plain http is sent to https, except for local development", async () => {
+  const res = await worker.fetch(new Request("http://ai-deck.example/privacy?x=1"), fakeEnv());
+  assert.equal(res.status, 301);
+  assert.equal(res.headers.get("location"), "https://ai-deck.example/privacy?x=1");
+  assert.equal((await worker.fetch(new Request("http://localhost:8787/"), fakeEnv())).status, 200);
+});
+
 test("item links that aren't http(s) are dropped, so they can't run script from an href", () => {
   for (const url of ["javascript:alert(1)", " JavaScript:alert(1)", "data:text/html,<script>alert(1)</script>"]) {
     assert.equal(normalizeItem({ id: "mcp:x", type: "mcp", name: "x", url }).url, null, url);

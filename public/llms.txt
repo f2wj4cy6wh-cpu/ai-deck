@@ -19,4 +19,5 @@ Search runs in the browser over one JSON file, so an agent can read the same dat
 
 ## Notes
 
+- Terms: /terms. Privacy: /privacy. The site's code is MIT-licensed; listed tools keep their own licenses.
 - Install commands come from each project's own listing. Check the trust score and publisher before running one.

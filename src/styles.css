@@ -1117,3 +1117,85 @@ kbd,
   font-variant-ligatures: none;
   font-feature-settings: "liga" 0, "calt" 0;
 }
+
+/* Legal pages (privacy, terms, EULA): one readable column in the site's ground and faces. */
+.legal {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font: 400 16px/1.6 var(--font);
+}
+.legal-bar,
+.legal main {
+  max-width: 72ch;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+.legal main {
+  padding: 16px 16px 96px;
+}
+.legal-mark {
+  color: var(--text);
+  font-weight: 600;
+}
+.legal-mark span {
+  color: var(--accent);
+  margin-right: 4px;
+}
+.legal h1 {
+  margin: 24px 0 4px;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.legal h2 {
+  margin: 40px 0 8px;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+.legal p,
+.legal li {
+  color: var(--muted);
+}
+.legal p {
+  margin: 0 0 12px;
+}
+.legal ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  list-style: disc;
+}
+.legal strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.legal main a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+.legal .legal-date {
+  font-size: 14px;
+  color: var(--faint);
+}
+.legal .legal-links {
+  margin-top: 48px;
+  font-size: 14px;
+}
+
+/* The site footer: the legal pages and the source. */
+.site-foot {
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--faint);
+}
+.site-foot a {
+  color: var(--muted);
+}
+.site-foot a:hover {
+  color: var(--text);
+}

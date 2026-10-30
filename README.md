@@ -47,6 +47,10 @@ npm run deploy      # build + wrangler deploy
 
 GitHub limits are low when anonymous. Ingest uses `GITHUB_TOKEN`, or a signed-in `gh` CLI's token automatically, to pull far more (more topic pages, more skill repos, full stats). Options: `--offline`, `--max-mcp=N`, `--max-github=N`, `--topic-pages=N`, `--skill-repos=N`.
 
+## Legal
+
+The source code is under the [MIT License](LICENSE). The site serves its [privacy policy](public/privacy.html), [terms of service](public/terms.html) and [end user license agreement](public/eula.html) at `/privacy`, `/terms` and `/eula`, linked from the footer. Listed tools belong to their owners and keep their own licenses.
+
 ## Tests
 
 ```bash
